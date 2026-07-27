@@ -11,7 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
-import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus } from "lucide-react";
+import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
 interface Hunt {
   id: string;
@@ -183,6 +183,12 @@ export default function HuntDetailPage() {
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
   }
 
+  async function handleDeleteHunt() {
+    if (!confirm("Tem certeza que deseja EXCLUIR esta hunt permanentemente?")) return;
+    await supabase.from("hunts").delete().eq("id", huntId);
+    router.push("/dashboard/hunts");
+  }
+
   async function handleSaveLoot() {
     if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); return; }
     setSavingLoot(true);
@@ -272,6 +278,11 @@ export default function HuntDetailPage() {
           {canManage && hunt.status === "completed" && (
             <Button size="sm" onClick={() => { setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true); }}>
               <Coins size={14} className="mr-1" /> Registrar Loot
+            </Button>
+          )}
+          {canManage && (
+            <Button variant="ghost" size="sm" onClick={handleDeleteHunt} title="Excluir permanentemente">
+              <Trash2 size={16} className="text-red-400" />
             </Button>
           )}
         </div>

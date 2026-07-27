@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
-import { Swords, Plus, Clock, Shield, Users, User, Lock } from "lucide-react";
+import { Swords, Plus, Clock, Shield, Users, User, Lock, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface Character {
@@ -102,6 +102,14 @@ export default function HuntsPage() {
 
     setMyChars(chars ?? []);
     setLoading(false);
+  }
+
+  const isAdmin = myRole === "LEADER" || myRole === "VICE";
+
+  async function handleDelete(huntId: string) {
+    if (!confirm("Excluir esta hunt permanentemente?")) return;
+    await supabase.from("hunts").delete().eq("id", huntId);
+    loadData();
   }
 
   async function handleCreate() {
@@ -277,9 +285,16 @@ export default function HuntsPage() {
                         </p>
                       )}
                     </div>
-                    <Badge variant={statusVariant(hunt.status)}>
-                      {HUNT_STATUS[hunt.status as keyof typeof HUNT_STATUS] ?? hunt.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={statusVariant(hunt.status)}>
+                        {HUNT_STATUS[hunt.status as keyof typeof HUNT_STATUS] ?? hunt.status}
+                      </Badge>
+                      {isAdmin && (
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(hunt.id); }} className="p-1 rounded hover:bg-red-500/10 cursor-pointer" title="Excluir">
+                          <Trash2 size={14} className="text-red-400" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {hunt.hunt_type === "group" && (
