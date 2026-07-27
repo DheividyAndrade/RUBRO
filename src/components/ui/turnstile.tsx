@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 interface TurnstileProps {
   onSuccess: (token: string) => void;
@@ -8,17 +8,18 @@ interface TurnstileProps {
   onExpire?: () => void;
 }
 
-const IS_LOCALHOST = typeof window !== "undefined" && window.location.hostname === "localhost";
-
 export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRendered = useRef(false);
   const callbacksRef = useRef({ onSuccess, onError, onExpire });
   callbacksRef.current = { onSuccess, onError, onExpire };
+  const [mounted, setMounted] = useState(false);
+
+  const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
 
   const renderWidget = useCallback(() => {
     if (!containerRef.current || widgetRendered.current) return;
-    if (typeof window === "undefined" || !window.turnstile) {
+    if (!window.turnstile) {
       setTimeout(renderWidget, 300);
       return;
     }
@@ -34,8 +35,14 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   }, []);
 
   useEffect(() => {
-    if (IS_LOCALHOST) {
-      setTimeout(() => onSuccess("localhost-bypass"), 100);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (isLocalhost) {
+      onSuccess("localhost-bypass");
       return;
     }
 
@@ -55,9 +62,10 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
     return () => {
       widgetRendered.current = false;
     };
-  }, [renderWidget, onSuccess]);
+  }, [mounted, renderWidget, onSuccess, isLocalhost]);
 
-  if (IS_LOCALHOST) return null;
+  if (!mounted) return null;
+  if (isLocalhost) return null;
 
   return <div ref={containerRef} />;
 }
