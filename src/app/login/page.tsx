@@ -7,12 +7,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Turnstile } from "@/components/ui/turnstile";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -20,6 +22,24 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!turnstileToken) {
+      setError("Resolva o captcha antes de continuar.");
+      setLoading(false);
+      return;
+    }
+
+    const verify = await fetch("/api/verify-turnstile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: turnstileToken }),
+    }).then((r) => r.json()).catch(() => ({ ok: false }));
+
+    if (!verify.ok) {
+      setError("Falha na verificação de segurança.");
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -87,7 +107,15 @@ export default function LoginPage() {
                 <p className="text-sm text-red-400 text-center">{error}</p>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <div className="flex justify-center">
+                <Turnstile
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onError={() => setTurnstileToken("")}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                 {loading ? "Entrando..." : "Entrar"}
               </Button>
             </form>
