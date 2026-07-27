@@ -52,13 +52,25 @@ export default function AdminPage() {
     const { data: myProfile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
     setIsAdmin(myProfile?.role === "LEADER" || myProfile?.role === "VICE");
 
-    const [{ data: profiles }, { data: hunts }, { data: events }] = await Promise.all([
-      supabase.from("profiles").select("*, characters(name,vocation,level,is_main)").order("role").order("display_name"),
+    const [{ data: profiles }, { data: hunts }, { data: events }, { data: allChars }] = await Promise.all([
+      supabase.from("profiles").select("*").order("role").order("display_name"),
       supabase.from("hunts").select("id,name,scheduled_at,status").order("scheduled_at", { ascending: false }).limit(30),
       supabase.from("events").select("id,title,category,starts_at").order("starts_at", { ascending: false }).limit(20),
+      supabase.from("characters").select("id,name,vocation,level,is_main,user_id"),
     ]);
 
-    setMembers(profiles ?? []);
+    const charsByUser = new Map<string, any[]>();
+    (allChars ?? []).forEach((c: any) => {
+      if (!charsByUser.has(c.user_id)) charsByUser.set(c.user_id, []);
+      charsByUser.get(c.user_id)!.push(c);
+    });
+
+    const enriched = (profiles ?? []).map((p: any) => ({
+      ...p,
+      characters: charsByUser.get(p.id) ?? [],
+    }));
+
+    setMembers(enriched);
     setHunts(hunts ?? []);
     setEvents(events ?? []);
     setLoading(false);
