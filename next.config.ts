@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://*.supabase.co";
 
@@ -8,8 +9,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `frame-src https://challenges.cloudflare.com`,
-  `connect-src 'self' ${supabaseUrl} https://discord.com https://*.discord.com https://challenges.cloudflare.com`,
+  "frame-src https://challenges.cloudflare.com",
+  `connect-src 'self' ${supabaseUrl} https://discord.com https://*.discord.com https://challenges.cloudflare.com https://*.ingest.sentry.io`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -32,4 +33,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "rubro",
+  project: "rubro",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  disableLogger: true,
+});
