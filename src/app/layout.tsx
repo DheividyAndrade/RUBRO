@@ -27,6 +27,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="dns-prefetch" href="https://vjgxfykowbllgscufjxy.supabase.co" />
+        <link rel="preconnect" href="https://vjgxfykowbllgscufjxy.supabase.co" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full bg-background text-foreground">
         {children}
       </body>
