@@ -26,7 +26,7 @@ export default function HistoryPage() {
     ] = await Promise.all([
       supabase
         .from("hunts")
-        .select("id, name, scheduled_at, status, hunt_type")
+        .select("id, name, scheduled_at, created_at, status, hunt_type")
         .in("status", ["completed", "cancelled"])
         .order("scheduled_at", { ascending: false })
         .limit(30),
@@ -43,37 +43,61 @@ export default function HistoryPage() {
         .limit(30),
     ]);
 
+    const allHuntIds = new Set<string>();
+    (huntsData ?? []).forEach((h: any) => allHuntIds.add(h.id));
+    (lootData ?? []).forEach((l: any) => { if (l.hunt_id) allHuntIds.add(l.hunt_id); });
+
+    const huntIdsArr = [...allHuntIds];
+    const { data: allParts } = huntIdsArr.length > 0
+      ? await supabase.from("hunt_participants").select("hunt_id, user_id, character_id, vocation_slot").in("hunt_id", huntIdsArr)
+      : { data: [] };
+
+    const allCharIds = [...new Set((allParts ?? []).map((p: any) => p.character_id).filter(Boolean))];
+    const { data: allChars } = allCharIds.length > 0
+      ? await supabase.from("characters").select("id, name, vocation").in("id", allCharIds)
+      : { data: [] };
+    const charMap = new Map((allChars ?? []).map((c: any) => [c.id, c]));
+
+    const partsByHunt = new Map<string, any[]>();
+    (allParts ?? []).forEach((p: any) => {
+      if (!partsByHunt.has(p.hunt_id)) partsByHunt.set(p.hunt_id, []);
+      partsByHunt.get(p.hunt_id)!.push({ user_id: p.user_id, character: charMap.get(p.character_id) ?? null });
+    });
+
+    const huntMap = new Map<string, any>();
+    (huntsData ?? []).forEach((h: any) => huntMap.set(h.id, h));
+
     if (huntsData && huntsData.length > 0) {
-      const huntIds = huntsData.map((h: any) => h.id);
-      const { data: allParts } = await supabase
-        .from("hunt_participants")
-        .select("hunt_id, user_id, character_id, vocation_slot")
-        .in("hunt_id", huntIds);
-
-      const allCharIds = [...new Set((allParts ?? []).map((p: any) => p.character_id).filter(Boolean))];
-      const { data: allChars } = allCharIds.length > 0
-        ? await supabase.from("characters").select("id, name, vocation").in("id", allCharIds)
-        : { data: [] };
-      const charMap = new Map((allChars ?? []).map((c: any) => [c.id, c]));
-
-      const enriched = huntsData.map((h: any) => ({
+      setHunts(huntsData.map((h: any) => ({
         ...h,
-        participants: (allParts ?? [])
-          .filter((p: any) => p.hunt_id === h.id)
-          .map((p: any) => ({
-            user_id: p.user_id,
-            character: charMap.get(p.character_id) ?? null,
-          })),
-      }));
-
-      setHunts(enriched);
+        participants: partsByHunt.get(h.id) ?? [],
+      })));
     } else {
       setHunts([]);
     }
 
+    const enrichedLoot = (lootData ?? []).map((l: any) => {
+      const hunt = l.hunt_id ? huntMap.get(l.hunt_id) : null;
+      return {
+        ...l,
+        hunt,
+        participants: l.hunt_id ? (partsByHunt.get(l.hunt_id) ?? []) : [],
+        duration: hunt ? getDuration(hunt.scheduled_at, l.created_at) : null,
+      };
+    });
+
     setBosses(bossesData ?? []);
-    setLoot(lootData ?? []);
+    setLoot(enrichedLoot);
     setLoading(false);
+  }
+
+  function getDuration(start: string, end: string) {
+    const ms = new Date(end).getTime() - new Date(start).getTime();
+    if (ms < 0) return null;
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.floor((ms % 3600000) / 60000);
+    if (hours > 0) return `${hours}h ${minutes}min`;
+    return `${minutes}min`;
   }
 
   function fmt(d: string) {
@@ -179,25 +203,52 @@ export default function HistoryPage() {
               const splits: { user_id: string; amount: number }[] = rawSplits.map((s: any) =>
                 typeof s === "string" ? { user_id: s, amount: 0 } : s
               );
+              const participants = item.participants ?? [];
               return (
                 <Card key={item.id}>
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <p className="text-sm font-medium">
-                        {item.hunt_id ? "Hunt" : item.boss_id ? "Boss" : "Geral"}
+                        {item.hunt?.name ?? (item.hunt_id ? "Hunt" : item.boss_id ? "Boss" : "Geral")}
                       </p>
-                      <p className="text-xs text-muted">{fmt(item.created_at)}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted">
+                        <span>{fmt(item.created_at)}</span>
+                        {item.duration && <span>· ⏱️ {item.duration}</span>}
+                      </div>
                     </div>
                     <Badge variant="warning">{item.value.toLocaleString("pt-BR")} gp</Badge>
                   </div>
+                  {participants.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2 text-xs text-muted">
+                      <span className="text-muted">Participantes: </span>
+                      {participants.map((p: any, i: number) => (
+                        <span key={i} className="px-1.5 py-0.5 rounded bg-surface-hover">
+                          <span className={p.character?.vocation ? VOCATIONS[p.character.vocation as Vocation]?.color : ""}>
+                            {p.character?.vocation ?? "?"}
+                          </span>{" "}
+                          {p.character?.name ?? "?"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {splits.length > 0 && (
                     <div className="space-y-0.5 border-t border-border pt-2">
-                      {splits.map((s: any) => (
-                        <div key={s.user_id} className="flex items-center justify-between text-xs">
-                          <span className="text-muted">{s.user_id.substring(0, 8)}...</span>
-                          <span className="text-muted">{s.amount > 0 ? `${s.amount.toLocaleString("pt-BR")} gp` : "—"}</span>
-                        </div>
-                      ))}
+                      {splits.map((s: any) => {
+                        const p = participants.find((pt: any) => pt.user_id === s.user_id);
+                        return (
+                          <div key={s.user_id} className="flex items-center justify-between text-xs">
+                            <span>
+                              <span className={p?.character?.vocation ? VOCATIONS[p.character.vocation as Vocation]?.color : "text-muted"}>
+                                {p?.character?.vocation ?? "?"}
+                              </span>{" "}
+                              {p?.character?.name ?? s.user_id?.substring(0, 8) ?? "?"}
+                            </span>
+                            <span className={s.amount > 0 ? "text-muted" : "text-muted/50"}>
+                              {s.amount > 0 ? `${s.amount.toLocaleString("pt-BR")} gp` : "—"}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </Card>
