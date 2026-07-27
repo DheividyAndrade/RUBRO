@@ -106,12 +106,15 @@ export default function EventsPage() {
     };
 
     let error;
+    let newEventId: string | null = null;
     if (editingEvent) {
       const { error: err } = await supabase.from("events").update(payload).eq("id", editingEvent.id);
       error = err;
+      newEventId = editingEvent.id;
     } else {
-      const { error: err } = await supabase.from("events").insert({ ...payload, created_by: user.id });
+      const { data: newEv, error: err } = await supabase.from("events").insert({ ...payload, created_by: user.id }).select("id").single();
       error = err;
+      if (newEv) newEventId = newEv.id;
     }
 
     if (error) { setFormError(error.message); setSaving(false); return; }
@@ -132,6 +135,7 @@ export default function EventsPage() {
       const cat = EVENT_CATEGORIES[formCategory] ?? EVENT_CATEGORIES.event;
       notifyEventCreated({
         title: formTitle,
+        eventId: newEventId ?? "",
         category: cat.label,
         categoryIcon: cat.icon,
         startsAt: startsAt,

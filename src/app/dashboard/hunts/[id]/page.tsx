@@ -173,7 +173,7 @@ export default function HuntDetailPage() {
   async function handleComplete() {
     await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
-    if (hunt) notifyHuntCompleted({ name: hunt.name });
+    if (hunt) notifyHuntCompleted({ name: hunt.name, huntId: huntId });
     await loadHunt();
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
   }
@@ -181,7 +181,7 @@ export default function HuntDetailPage() {
   async function handleCancel() {
     await supabase.from("hunts").update({ status: "cancelled" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt cancelada", message: `${hunt?.name} foi cancelada.`, link: `/dashboard/hunts/${huntId}` });
-    if (hunt) notifyHuntCancelled({ name: hunt.name });
+    if (hunt) notifyHuntCancelled({ name: hunt.name, huntId: huntId });
     await loadHunt();
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
   }

@@ -160,11 +160,13 @@ export default function HuntsPage() {
 
       notifyHuntCreated({
         name: formHuntName,
+        huntId: newHunt.id,
         scheduledAt: scheduledAt,
         endTime: endAt,
         huntType: formHuntType,
         creatorName: char.name,
         creatorVocation: char.vocation,
+        creatorLevel: char.level,
         slots: formHuntType === "solo" ? {} : formSlots,
       });
     }
