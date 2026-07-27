@@ -1,13 +1,15 @@
-const WEBHOOK_URL = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL ?? "";
+const HUNT_WEBHOOK = process.env.NEXT_PUBLIC_DISCORD_HUNT_WEBHOOK ?? "";
+const BOSS_WEBHOOK = process.env.NEXT_PUBLIC_DISCORD_BOSS_WEBHOOK ?? "";
+const EVENT_WEBHOOK = process.env.NEXT_PUBLIC_DISCORD_EVENT_WEBHOOK ?? "";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://rubro-ecru.vercel.app";
 
-async function sendEmbed(embed: any) {
-  if (!WEBHOOK_URL) return;
+async function sendEmbed(webhookUrl: string, content: string, embed: any) {
+  if (!webhookUrl) return;
   try {
-    await fetch(WEBHOOK_URL, {
+    await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify({ content, embeds: [embed] }),
     });
   } catch {
     // silently ignore webhook errors
@@ -76,18 +78,10 @@ export async function notifyHuntCreated({
         })
         .join(" · ");
 
-      fields.push({
-        name: "👥 Vagas",
-        value: slotsText,
-        inline: false,
-      });
+      fields.push({ name: "👥 Vagas", value: slotsText, inline: false });
 
       if (faltaText) {
-        fields.push({
-          name: "🟡 Ainda precisa de:",
-          value: faltaText,
-          inline: false,
-        });
+        fields.push({ name: "🟡 Ainda precisa de", value: faltaText, inline: false });
       }
     }
   }
@@ -96,7 +90,7 @@ export async function notifyHuntCreated({
   const typeLabel = huntType === "solo" ? "Hunt Solo" : "PT Aberta";
   const link = `${APP_URL}/dashboard/hunts/${huntId}`;
 
-  await sendEmbed({
+  await sendEmbed(HUNT_WEBHOOK, "@everyone", {
     title: `${emoji} ${typeLabel}: **${name}**`,
     description: `Nova hunt criada! [Clique aqui para se inscrever](${link})`,
     url: link,
@@ -121,7 +115,7 @@ export async function notifyHuntCompleted({
     fields.push({ name: "💰 Loot Total", value: `${totalLoot.toLocaleString("pt-BR")} gp`, inline: false });
   }
 
-  await sendEmbed({
+  await sendEmbed(HUNT_WEBHOOK, "", {
     title: `✅ Hunt Encerrada: **${name}**`,
     description: `Hunt concluída. [Ver detalhes](${APP_URL}/dashboard/hunts/${huntId})`,
     fields,
@@ -138,118 +132,11 @@ export async function notifyHuntCancelled({
   name: string;
   huntId: string;
 }) {
-  await sendEmbed({
+  await sendEmbed(HUNT_WEBHOOK, "", {
     title: `❌ Hunt Cancelada: **${name}**`,
     description: `Esta hunt foi cancelada. [Ver detalhes](${APP_URL}/dashboard/hunts/${huntId})`,
     color: 0xef4444,
     footer: { text: "Rubro Guild Manager" },
-    timestamp: new Date().toISOString(),
-  });
-}
-
-export async function notifyEventCreated({
-  title,
-  eventId,
-  category,
-  categoryIcon,
-  startsAt,
-  location,
-  leader,
-  minLevel,
-  maxParticipants,
-}: {
-  title: string;
-  eventId: string;
-  category: string;
-  categoryIcon: string;
-  startsAt: string;
-  location?: string;
-  leader?: string;
-  minLevel?: number;
-  maxParticipants?: number;
-}) {
-  const dateStr = new Date(startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-  const timeStr = new Date(startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-  const fields = [
-    { name: "📅 Data", value: dateStr, inline: true },
-    { name: "⏰ Horário", value: timeStr, inline: true },
-  ];
-  if (location) fields.push({ name: "📍 Local", value: location, inline: true });
-  if (leader) fields.push({ name: "👤 Líder", value: leader, inline: true });
-  if (minLevel && minLevel > 0) fields.push({ name: "🛡️ Level mínimo", value: String(minLevel), inline: true });
-  if (maxParticipants && maxParticipants > 0) fields.push({ name: "👥 Máx. participantes", value: String(maxParticipants), inline: true });
-
-  const link = `${APP_URL}/dashboard/events/${eventId}`;
-
-  await sendEmbed({
-    title: `${categoryIcon} ${category}: **${title}**`,
-    description: `Novo evento oficial! [Clique aqui para se inscrever](${link})`,
-    url: link,
-    fields,
-    color: 0x3b82f6,
-    footer: { text: "Rubro Guild Manager — Eventos Oficiais" },
-    timestamp: new Date().toISOString(),
-  });
-}
-
-const WEEKDAYS_DISCORD = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-
-export async function notifyBossCreated({
-  name,
-  bossId,
-  weekday,
-  spawnInterval,
-  isOfficial,
-  maxParticipants,
-}: {
-  name: string;
-  bossId: string;
-  weekday: number;
-  spawnInterval: number;
-  isOfficial: boolean;
-  maxParticipants?: number;
-}) {
-  const link = `${APP_URL}/dashboard/bosses/${bossId}`;
-
-  const fields = [
-    { name: "📅 Dia", value: WEEKDAYS_DISCORD[weekday] ?? String(weekday), inline: true },
-    { name: "⏱️ Spawn", value: `a cada ${spawnInterval} dias`, inline: true },
-    { name: "🏷️ Tipo", value: isOfficial ? "Oficial" : "Simples", inline: true },
-  ];
-  if (maxParticipants && maxParticipants > 0) {
-    fields.push({ name: "👥 Vagas", value: `0/${maxParticipants}`, inline: true });
-  }
-
-  await sendEmbed({
-    title: `💀 Boss: **${name}**`,
-    description: `Novo boss adicionado! [Clique aqui para participar](${link})`,
-    url: link,
-    fields,
-    color: isOfficial ? 0xef4444 : 0xf59e0b,
-    footer: { text: "Rubro Guild Manager — Bosses" },
-    timestamp: new Date().toISOString(),
-  });
-}
-
-export async function notifyBossJoined({
-  bossName,
-  bossId,
-  characterName,
-  characterVocation,
-}: {
-  bossName: string;
-  bossId: string;
-  characterName: string;
-  characterVocation: string;
-}) {
-  const link = `${APP_URL}/dashboard/bosses/${bossId}`;
-
-  await sendEmbed({
-    title: `🟢 **${characterName}** (${characterVocation}) vai participar do boss`,
-    description: `**${bossName}**\n[Ver boss](${link})`,
-    color: 0x22c55e,
-    footer: { text: "Rubro Guild Manager — Bosses" },
     timestamp: new Date().toISOString(),
   });
 }
@@ -293,13 +180,59 @@ export async function notifyHuntJoined({
     fields.push({ name: "🟡 Ainda precisa de", value: faltando, inline: false });
   }
 
-  await sendEmbed({
+  await sendEmbed(HUNT_WEBHOOK, "", {
     title: `🟢 **${characterName}** entrou na PT: **${huntName}**`,
     description: `${characterVocation} Level ${characterLevel} acabou de entrar. [Ver hunt](${link})`,
     url: link,
     fields,
     color: 0x16a34a,
     footer: { text: "Rubro Guild Manager — Hunts" },
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function notifyEventCreated({
+  title,
+  eventId,
+  category,
+  categoryIcon,
+  startsAt,
+  location,
+  leader,
+  minLevel,
+  maxParticipants,
+}: {
+  title: string;
+  eventId: string;
+  category: string;
+  categoryIcon: string;
+  startsAt: string;
+  location?: string;
+  leader?: string;
+  minLevel?: number;
+  maxParticipants?: number;
+}) {
+  const dateStr = new Date(startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const timeStr = new Date(startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  const fields = [
+    { name: "📅 Data", value: dateStr, inline: true },
+    { name: "⏰ Horário", value: timeStr, inline: true },
+  ];
+  if (location) fields.push({ name: "📍 Local", value: location, inline: true });
+  if (leader) fields.push({ name: "👤 Líder", value: leader, inline: true });
+  if (minLevel && minLevel > 0) fields.push({ name: "🛡️ Level mínimo", value: String(minLevel), inline: true });
+  if (maxParticipants && maxParticipants > 0) fields.push({ name: "👥 Máx. participantes", value: String(maxParticipants), inline: true });
+
+  const link = `${APP_URL}/dashboard/events/${eventId}`;
+
+  await sendEmbed(EVENT_WEBHOOK, "@everyone", {
+    title: `${categoryIcon} ${category}: **${title}**`,
+    description: `Novo evento oficial! [Clique aqui para se inscrever](${link})`,
+    url: link,
+    fields,
+    color: 0x3b82f6,
+    footer: { text: "Rubro Guild Manager — Eventos Oficiais" },
     timestamp: new Date().toISOString(),
   });
 }
@@ -317,11 +250,72 @@ export async function notifyEventJoined({
 }) {
   const link = `${APP_URL}/dashboard/events/${eventId}`;
 
-  await sendEmbed({
+  await sendEmbed(EVENT_WEBHOOK, "", {
     title: `🟢 **${characterName}** (${characterVocation}) se inscreveu no evento`,
     description: `**${eventTitle}**\n[Ver evento](${link})`,
     color: 0x22c55e,
     footer: { text: "Rubro Guild Manager — Eventos" },
+    timestamp: new Date().toISOString(),
+  });
+}
+
+const WEEKDAYS_DISCORD = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+export async function notifyBossCreated({
+  name,
+  bossId,
+  weekday,
+  spawnInterval,
+  isOfficial,
+  maxParticipants,
+}: {
+  name: string;
+  bossId: string;
+  weekday: number;
+  spawnInterval: number;
+  isOfficial: boolean;
+  maxParticipants?: number;
+}) {
+  const link = `${APP_URL}/dashboard/bosses/${bossId}`;
+
+  const fields = [
+    { name: "📅 Dia", value: WEEKDAYS_DISCORD[weekday] ?? String(weekday), inline: true },
+    { name: "⏱️ Spawn", value: `a cada ${spawnInterval} dias`, inline: true },
+    { name: "🏷️ Tipo", value: isOfficial ? "Oficial" : "Simples", inline: true },
+  ];
+  if (maxParticipants && maxParticipants > 0) {
+    fields.push({ name: "👥 Vagas", value: `0/${maxParticipants}`, inline: true });
+  }
+
+  await sendEmbed(BOSS_WEBHOOK, "@everyone", {
+    title: `💀 Boss: **${name}**`,
+    description: `Novo boss adicionado! [Clique aqui para participar](${link})`,
+    url: link,
+    fields,
+    color: isOfficial ? 0xef4444 : 0xf59e0b,
+    footer: { text: "Rubro Guild Manager — Bosses" },
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function notifyBossJoined({
+  bossName,
+  bossId,
+  characterName,
+  characterVocation,
+}: {
+  bossName: string;
+  bossId: string;
+  characterName: string;
+  characterVocation: string;
+}) {
+  const link = `${APP_URL}/dashboard/bosses/${bossId}`;
+
+  await sendEmbed(BOSS_WEBHOOK, "", {
+    title: `🟢 **${characterName}** (${characterVocation}) vai participar do boss`,
+    description: `**${bossName}**\n[Ver boss](${link})`,
+    color: 0x22c55e,
+    footer: { text: "Rubro Guild Manager — Bosses" },
     timestamp: new Date().toISOString(),
   });
 }
