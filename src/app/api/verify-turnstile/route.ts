@@ -3,10 +3,6 @@ export async function POST(request: Request) {
     const { token } = await request.json();
     if (!token) return Response.json({ ok: false }, { status: 400 });
 
-    if (token === "localhost-bypass") {
-      return Response.json({ ok: true });
-    }
-
     const secret = process.env.TURNSTILE_SECRET_KEY;
     if (!secret) return Response.json({ ok: false }, { status: 500 });
 

@@ -15,8 +15,6 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   callbacksRef.current = { onSuccess, onError, onExpire };
   const [mounted, setMounted] = useState(false);
 
-  const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
-
   const renderWidget = useCallback(() => {
     if (!containerRef.current || widgetRendered.current) return;
     if (!window.turnstile) {
@@ -34,17 +32,10 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
     });
   }, []);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!mounted) return;
-
-    if (isLocalhost) {
-      onSuccess("localhost-bypass");
-      return;
-    }
 
     if (document.getElementById("cf-turnstile-script")) {
       renderWidget();
@@ -62,10 +53,8 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
     return () => {
       widgetRendered.current = false;
     };
-  }, [mounted, renderWidget, onSuccess, isLocalhost]);
+  }, [mounted, renderWidget]);
 
   if (!mounted) return null;
-  if (isLocalhost) return null;
-
   return <div ref={containerRef} />;
 }
