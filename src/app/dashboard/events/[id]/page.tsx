@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { VOCATIONS, type Vocation, EVENT_CATEGORIES, type EventCategory } from "@/lib/utils";
+import { notifyEventJoined } from "@/lib/discord";
 import { ArrowLeft, Clock, MapPin, Shield, User, Check, X, AlertCircle } from "lucide-react";
 
 interface Event {
@@ -124,6 +125,15 @@ export default function EventDetailPage() {
       if (err.code === "23505") setJoinMsg("Você já está inscrito neste evento.");
       else setJoinMsg(err.message);
       return;
+    }
+
+    if (event) {
+      notifyEventJoined({
+        eventTitle: event.title,
+        eventId: eventId,
+        characterName: char.name,
+        characterVocation: char.vocation,
+      });
     }
 
     setJoinMsg("Inscrição realizada com sucesso!");

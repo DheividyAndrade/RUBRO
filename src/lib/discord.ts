@@ -303,3 +303,25 @@ export async function notifyHuntJoined({
     timestamp: new Date().toISOString(),
   });
 }
+
+export async function notifyEventJoined({
+  eventTitle,
+  eventId,
+  characterName,
+  characterVocation,
+}: {
+  eventTitle: string;
+  eventId: string;
+  characterName: string;
+  characterVocation: string;
+}) {
+  const link = `${APP_URL}/dashboard/events/${eventId}`;
+
+  await sendEmbed({
+    title: `🟢 **${characterName}** (${characterVocation}) se inscreveu no evento`,
+    description: `**${eventTitle}**\n[Ver evento](${link})`,
+    color: 0x22c55e,
+    footer: { text: "Rubro Guild Manager — Eventos" },
+    timestamp: new Date().toISOString(),
+  });
+}
