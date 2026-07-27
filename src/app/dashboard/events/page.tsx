@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { VOCATIONS, type Vocation, EVENT_CATEGORIES, type EventCategory } from "@/lib/utils";
 import { createNotification } from "@/lib/notifications";
+import { notifyEventCreated } from "@/lib/discord";
 import { Calendar, Plus, MapPin, Shield, Clock, User, X, Pencil } from "lucide-react";
 import Link from "next/link";
 
@@ -127,6 +128,16 @@ export default function EventsPage() {
         }));
         await supabase.from("notifications").insert(notifications);
       }
+
+      const cat = EVENT_CATEGORIES[formCategory] ?? EVENT_CATEGORIES.event;
+      notifyEventCreated({
+        title: formTitle,
+        category: cat.label,
+        categoryIcon: cat.icon,
+        startsAt: startsAt,
+        location: formLocation || undefined,
+        leader: formLeader || undefined,
+      });
     }
 
     setModalOpen(false);

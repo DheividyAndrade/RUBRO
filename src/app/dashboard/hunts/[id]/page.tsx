@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
+import { notifyHuntCompleted, notifyHuntCancelled } from "@/lib/discord";
 import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
 interface Hunt {
@@ -172,6 +173,7 @@ export default function HuntDetailPage() {
   async function handleComplete() {
     await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
+    if (hunt) notifyHuntCompleted({ name: hunt.name });
     await loadHunt();
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
   }
@@ -179,6 +181,7 @@ export default function HuntDetailPage() {
   async function handleCancel() {
     await supabase.from("hunts").update({ status: "cancelled" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt cancelada", message: `${hunt?.name} foi cancelada.`, link: `/dashboard/hunts/${huntId}` });
+    if (hunt) notifyHuntCancelled({ name: hunt.name });
     await loadHunt();
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
   }

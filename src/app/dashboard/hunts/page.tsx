@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { TIBIA_HUNTS } from "@/lib/tibia-hunts";
+import { notifyHuntCreated } from "@/lib/discord";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { Swords, Plus, Clock, Shield, Users, User, Lock, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -155,6 +156,16 @@ export default function HuntsPage() {
         vocation_slot: char.vocation,
         confirmed: true,
         is_waiting: false,
+      });
+
+      notifyHuntCreated({
+        name: formHuntName,
+        scheduledAt: scheduledAt,
+        endTime: endAt,
+        huntType: formHuntType,
+        creatorName: char.name,
+        creatorVocation: char.vocation,
+        slots: formHuntType === "solo" ? {} : formSlots,
       });
     }
 
