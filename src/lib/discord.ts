@@ -231,3 +231,75 @@ export async function notifyBossCreated({
     timestamp: new Date().toISOString(),
   });
 }
+
+export async function notifyBossJoined({
+  bossName,
+  bossId,
+  characterName,
+  characterVocation,
+}: {
+  bossName: string;
+  bossId: string;
+  characterName: string;
+  characterVocation: string;
+}) {
+  const link = `${APP_URL}/dashboard/bosses/${bossId}`;
+
+  await sendEmbed({
+    title: `🟢 **${characterName}** (${characterVocation}) vai participar do boss`,
+    description: `**${bossName}**\n[Ver boss](${link})`,
+    color: 0x22c55e,
+    footer: { text: "Rubro Guild Manager — Bosses" },
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function notifyHuntJoined({
+  huntName,
+  huntId,
+  characterName,
+  characterVocation,
+  characterLevel,
+  slots,
+  filledSlots,
+}: {
+  huntName: string;
+  huntId: string;
+  characterName: string;
+  characterVocation: string;
+  characterLevel: number;
+  slots: Record<string, number>;
+  filledSlots: Record<string, number>;
+}) {
+  const link = `${APP_URL}/dashboard/hunts/${huntId}`;
+
+  const faltando = Object.entries(slots)
+    .filter(([voc, max]) => {
+      const filled = filledSlots[voc] ?? 0;
+      return Number(max) > filled;
+    })
+    .map(([voc, max]) => {
+      const filled = filledSlots[voc] ?? 0;
+      const falta = Number(max) - filled;
+      return `**${voc}** (falta ${falta})`;
+    })
+    .join(" · ");
+
+  const fields = [
+    { name: "👤 Jogador", value: `${characterName} (${characterVocation}) Level ${characterLevel}`, inline: false },
+  ];
+
+  if (faltando) {
+    fields.push({ name: "🟡 Ainda precisa de", value: faltando, inline: false });
+  }
+
+  await sendEmbed({
+    title: `🟢 **${characterName}** entrou na PT: **${huntName}**`,
+    description: `${characterVocation} Level ${characterLevel} acabou de entrar. [Ver hunt](${link})`,
+    url: link,
+    fields,
+    color: 0x16a34a,
+    footer: { text: "Rubro Guild Manager — Hunts" },
+    timestamp: new Date().toISOString(),
+  });
+}

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { VOCATIONS, type Vocation, WEEKDAYS } from "@/lib/utils";
+import { notifyBossJoined } from "@/lib/discord";
 import { ArrowLeft, Clock, Shield, User, Check, X, Skull, Calendar } from "lucide-react";
 
 interface Boss {
@@ -98,6 +99,15 @@ export default function BossDetailPage() {
       if (err.code === "23505") setError("Você já está neste boss.");
       else setError(err.message);
       return;
+    }
+
+    if (boss) {
+      notifyBossJoined({
+        bossName: boss.name,
+        bossId: bossId,
+        characterName: char.name,
+        characterVocation: char.vocation,
+      });
     }
 
     setJoinCharId("");

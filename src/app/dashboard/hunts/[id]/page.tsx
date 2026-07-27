@@ -11,7 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
-import { notifyHuntCompleted, notifyHuntCancelled } from "@/lib/discord";
+import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntJoined } from "@/lib/discord";
 import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
 interface Hunt {
@@ -153,6 +153,28 @@ export default function HuntDetailPage() {
       else setJoinError(error.message);
       return;
     }
+
+    if (hunt && hunt.hunt_type === "group") {
+      const slots = (hunt.slots || { EK: 0, RP: 0, MS: 0, ED: 0, MK: 0 }) as Record<string, number>;
+      const filledSlots: Record<string, number> = {};
+      participants.forEach((p) => {
+        if (!p.is_waiting) {
+          filledSlots[p.vocation_slot] = (filledSlots[p.vocation_slot] ?? 0) + 1;
+        }
+      });
+      filledSlots[char.vocation] = (filledSlots[char.vocation] ?? 0) + 1;
+
+      notifyHuntJoined({
+        huntName: hunt.name,
+        huntId: huntId,
+        characterName: char.name,
+        characterVocation: char.vocation,
+        characterLevel: char.level,
+        slots,
+        filledSlots,
+      });
+    }
+
     setJoinModalOpen(false);
     setSelectedCharId("");
     setJoinValidation(null);
