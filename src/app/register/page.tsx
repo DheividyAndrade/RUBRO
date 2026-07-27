@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Turnstile } from "@/components/ui/turnstile";
 
 export default function RegisterPage() {
   const [displayName, setDisplayName] = useState("");
@@ -15,6 +16,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -22,6 +24,24 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!turnstileToken) {
+      setError("Resolva o captcha antes de continuar.");
+      setLoading(false);
+      return;
+    }
+
+    const verify = await fetch("/api/verify-turnstile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: turnstileToken }),
+    }).then((r) => r.json()).catch(() => ({ ok: false }));
+
+    if (!verify.ok) {
+      setError("Falha na verificação de segurança. Tente novamente.");
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -136,7 +156,15 @@ export default function RegisterPage() {
                 <p className="text-sm text-red-400 text-center">{error}</p>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <div className="flex justify-center">
+                <Turnstile
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onError={() => setTurnstileToken("")}
+                  onExpire={() => setTurnstileToken("")}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                 {loading ? "Criando..." : "Criar conta"}
               </Button>
             </form>
