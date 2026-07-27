@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { VOCATIONS, type Vocation, WEEKDAYS } from "@/lib/utils";
 import { Skull, Plus, Calendar, Shield, X, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { notifyBossCreated } from "@/lib/discord";
 
 interface Boss {
   id: string;
@@ -62,16 +63,26 @@ export default function BossesPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("bosses").insert({
+    const { data: newBoss, error } = await supabase.from("bosses").insert({
       created_by: user.id,
       name: formName,
       weekday: Number(formWeekday),
       spawn_interval: Number(formInterval) || 15,
       is_official: isAdmin && formOfficial,
       notes: formNotes || null,
-    });
+    }).select("id").single();
 
     if (error) { setFormError(error.message); setSaving(false); return; }
+
+    if (newBoss) {
+      notifyBossCreated({
+        name: formName,
+        bossId: newBoss.id,
+        weekday: Number(formWeekday),
+        spawnInterval: Number(formInterval) || 15,
+        isOfficial: isAdmin && formOfficial,
+      });
+    }
 
     setModalOpen(false);
     setFormName("");
