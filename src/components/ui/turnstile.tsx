@@ -8,6 +8,8 @@ interface TurnstileProps {
   onExpire?: () => void;
 }
 
+const IS_LOCALHOST = typeof window !== "undefined" && window.location.hostname === "localhost";
+
 export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRendered = useRef(false);
@@ -32,6 +34,11 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   }, []);
 
   useEffect(() => {
+    if (IS_LOCALHOST) {
+      setTimeout(() => onSuccess("localhost-bypass"), 100);
+      return;
+    }
+
     if (document.getElementById("cf-turnstile-script")) {
       renderWidget();
       return;
@@ -48,7 +55,9 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
     return () => {
       widgetRendered.current = false;
     };
-  }, [renderWidget]);
+  }, [renderWidget, onSuccess]);
+
+  if (IS_LOCALHOST) return null;
 
   return <div ref={containerRef} />;
 }
