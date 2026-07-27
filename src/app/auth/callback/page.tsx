@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { AuthCallbackContent } from "./content";
 
+export const dynamic = "force-dynamic";
+
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
