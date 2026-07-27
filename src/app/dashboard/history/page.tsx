@@ -1,0 +1,195 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { VOCATIONS, type Vocation } from "@/lib/utils";
+import { History, Skull, Swords, Coins, User, Clock } from "lucide-react";
+
+export default function HistoryPage() {
+  const [tab, setTab] = useState<"hunts" | "bosses" | "loot">("hunts");
+  const [hunts, setHunts] = useState<any[]>([]);
+  const [bosses, setBosses] = useState<any[]>([]);
+  const [loot, setLoot] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => { loadHistory(); }, [tab]);
+
+  async function loadHistory() {
+    setLoading(true);
+    const [
+      { data: huntsData },
+      { data: bossesData },
+      { data: lootData },
+    ] = await Promise.all([
+      supabase
+        .from("hunts")
+        .select("id, name, scheduled_at, status, hunt_type")
+        .in("status", ["completed", "cancelled"])
+        .order("scheduled_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("bosses")
+        .select("id, name, last_killed_at, is_official")
+        .not("last_killed_at", "is", null)
+        .order("last_killed_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("loot_history")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(30),
+    ]);
+
+    if (huntsData && huntsData.length > 0) {
+      const huntIds = huntsData.map((h: any) => h.id);
+      const { data: allParts } = await supabase
+        .from("hunt_participants")
+        .select("hunt_id, user_id, character_id, vocation_slot")
+        .in("hunt_id", huntIds);
+
+      const allCharIds = [...new Set((allParts ?? []).map((p: any) => p.character_id).filter(Boolean))];
+      const { data: allChars } = allCharIds.length > 0
+        ? await supabase.from("characters").select("id, name, vocation").in("id", allCharIds)
+        : { data: [] };
+      const charMap = new Map((allChars ?? []).map((c: any) => [c.id, c]));
+
+      const enriched = huntsData.map((h: any) => ({
+        ...h,
+        participants: (allParts ?? [])
+          .filter((p: any) => p.hunt_id === h.id)
+          .map((p: any) => ({
+            user_id: p.user_id,
+            character: charMap.get(p.character_id) ?? null,
+          })),
+      }));
+
+      setHunts(enriched);
+    } else {
+      setHunts([]);
+    }
+
+    setBosses(bossesData ?? []);
+    setLoot(lootData ?? []);
+    setLoading(false);
+  }
+
+  function fmt(d: string) {
+    return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+
+  if (loading) return <div className="space-y-6 animate-pulse"><div className="h-8 w-48 bg-surface rounded" /><div className="h-64 bg-surface rounded-xl" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Histórico</h1>
+        <p className="text-muted mt-1">Registro de atividades concluídas</p>
+      </div>
+
+      <div className="flex gap-2 border-b border-border pb-2">
+        {[
+          { key: "hunts" as const, label: "Hunts", icon: Swords },
+          { key: "bosses" as const, label: "Bosses", icon: Skull },
+          { key: "loot" as const, label: "Loot", icon: Coins },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+              tab === t.key ? "bg-primary/10 text-primary" : "text-muted hover:text-foreground"
+            }`}
+          >
+            <t.icon size={16} />{t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "hunts" && (
+        <div className="space-y-3">
+          {hunts.length === 0 ? (
+            <Card><p className="text-sm text-muted text-center py-8">Nenhuma hunt concluída.</p></Card>
+          ) : (
+            hunts.map((h) => (
+              <Card key={h.id}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{h.name}</h3>
+                      <Badge variant={h.status === "completed" ? "success" : "danger"}>
+                        {h.status === "completed" ? "Concluída" : "Cancelada"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted mt-1"><Clock size={12} className="inline mr-1" />{fmt(h.scheduled_at)}</p>
+                  </div>
+                </div>
+                {h.participants && h.participants.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted mb-1">Participantes ({h.participants.length}):</p>
+                    <div className="flex flex-wrap gap-1">
+                      {h.participants.map((p: any, i: number) => (
+                        <span key={i} className="text-xs px-2 py-0.5 rounded bg-surface-hover">
+                        <span className={p.character?.vocation ? VOCATIONS[p.character.vocation as Vocation]?.color : "text-muted"}>
+                          {p.character?.vocation ?? "?"}
+                          </span>{" "}
+                          {p.character?.name ?? p.profile?.display_name ?? "?"}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === "bosses" && (
+        <div className="space-y-3">
+          {bosses.length === 0 ? (
+            <Card><p className="text-sm text-muted text-center py-8">Nenhum boss morto ainda.</p></Card>
+          ) : (
+            bosses.map((b) => (
+              <Card key={b.id}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Skull size={16} className="text-yellow-400" />
+                    <span className="font-medium">{b.name}</span>
+                    {b.is_official && <Badge variant="danger">Oficial</Badge>}
+                  </div>
+                  <span className="text-sm text-muted">
+                    Último kill: {b.last_killed_at ? fmt(b.last_killed_at) : "—"}
+                  </span>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+
+      {tab === "loot" && (
+        <div className="space-y-3">
+          {loot.length === 0 ? (
+            <Card><p className="text-sm text-muted text-center py-8">Nenhum loot registrado.</p></Card>
+          ) : (
+            loot.map((item) => (
+              <Card key={item.id}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{item.item_name}</p>
+                    <p className="text-xs text-muted">
+                      {item.hunt_id ? "Hunt" : item.boss_id ? "Boss" : "Outro"} · {fmt(item.created_at)}
+                    </p>
+                  </div>
+                  <Badge variant="warning">{item.value.toLocaleString("pt-BR")} gp</Badge>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

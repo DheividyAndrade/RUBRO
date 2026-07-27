@@ -1,0 +1,132 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const supabase = createClient();
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSent(true);
+    }
+    setLoading(false);
+  }
+
+  if (sent) {
+    return (
+      <div className="min-h-screen flex">
+        <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-black overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-background/60 to-blue-600/20 z-10" />
+          <img
+            src="/rubro.png"
+            alt="Rubro"
+            className="relative z-20 max-w-[420px] w-[75%] h-auto drop-shadow-[0_0_80px_rgba(59,130,246,0.3)]"
+          />
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6 bg-background">
+          <div className="w-full max-w-sm text-center">
+            <div className="flex justify-center mb-8 lg:hidden">
+              <img
+                src="/rubro.png"
+                alt="Rubro"
+                className="h-16 w-auto drop-shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+              />
+            </div>
+            <Card className="border-border/50 bg-surface/80 backdrop-blur-sm">
+              <CardHeader className="text-center">
+                <CardTitle>Email enviado</CardTitle>
+                <p className="text-sm text-muted mt-2">
+                  Verifique sua caixa de entrada para redefinir sua senha.
+                </p>
+              </CardHeader>
+              <Link href="/login">
+                <Button variant="outline" className="w-full">
+                  Voltar ao login
+                </Button>
+              </Link>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex">
+      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-black overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-background/60 to-primary/30 z-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.15),transparent_70%)]" />
+        <img
+          src="/rubro.png"
+          alt="Rubro"
+          className="relative z-20 max-w-[420px] w-[75%] h-auto drop-shadow-[0_0_80px_rgba(220,38,38,0.35)]"
+        />
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+        <div className="w-full max-w-sm">
+          <div className="flex justify-center mb-8 lg:hidden">
+            <img
+              src="/rubro.png"
+              alt="Rubro"
+              className="h-16 w-auto drop-shadow-[0_0_30px_rgba(220,38,38,0.3)]"
+            />
+          </div>
+
+          <Card className="border-border/50 bg-surface/80 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl tracking-tight">Recuperar Senha</CardTitle>
+              <p className="text-sm text-muted mt-1">
+                Digite seu email para receber o link de redefinição.
+              </p>
+            </CardHeader>
+
+            <form onSubmit={handleReset} className="space-y-4">
+              <Input
+                label="Email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              {error && (
+                <p className="text-sm text-red-400 text-center">{error}</p>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Enviando..." : "Enviar link de recuperação"}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <Link href="/login" className="text-sm text-muted hover:text-foreground transition-colors">
+                Voltar ao login
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
