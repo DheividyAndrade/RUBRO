@@ -1,3 +1,5 @@
+import { createClient } from "@/lib/supabase/server";
+
 const WEBHOOKS: Record<string, string> = {
   hunt: process.env.DISCORD_HUNT_WEBHOOK ?? "",
   boss: process.env.DISCORD_BOSS_WEBHOOK ?? "",
@@ -8,6 +10,13 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ channel: string }> }
 ) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return Response.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
   const { channel } = await params;
   const webhookUrl = WEBHOOKS[channel];
 

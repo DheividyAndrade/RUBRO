@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+"use client";
 
 export async function createNotification({
   userId,
@@ -11,14 +11,15 @@ export async function createNotification({
   message: string;
   link?: string;
 }) {
-  const supabase = createClient();
-  await supabase.from("notifications").insert({
-    user_id: userId,
-    title,
-    message,
-    read: false,
-    link: link ?? null,
-  });
+  try {
+    await fetch("/api/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, title, message, link }),
+    });
+  } catch {
+    // silently ignore
+  }
 }
 
 export async function notifyAllHuntParticipants({
@@ -34,27 +35,13 @@ export async function notifyAllHuntParticipants({
   message: string;
   link?: string;
 }) {
-  const supabase = createClient();
-  const { data: participants } = await supabase
-    .from("hunt_participants")
-    .select("user_id")
-    .eq("hunt_id", huntId);
-
-  if (!participants) return;
-
-  const userIds = participants
-    .map((p) => p.user_id)
-    .filter((id) => id !== excludeUserId);
-
-  const notifications = userIds.map((userId) => ({
-    user_id: userId,
-    title,
-    message,
-    read: false,
-    link: link ?? null,
-  }));
-
-  if (notifications.length > 0) {
-    await supabase.from("notifications").insert(notifications);
+  try {
+    await fetch("/api/notifications/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ huntId, excludeUserId, title, message, link }),
+    });
+  } catch {
+    // silently ignore
   }
 }
