@@ -1,12 +1,8 @@
-const HUNT_WEBHOOK = process.env.NEXT_PUBLIC_DISCORD_HUNT_WEBHOOK ?? "";
-const BOSS_WEBHOOK = process.env.NEXT_PUBLIC_DISCORD_BOSS_WEBHOOK ?? "";
-const EVENT_WEBHOOK = process.env.NEXT_PUBLIC_DISCORD_EVENT_WEBHOOK ?? "";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://rubro-ecru.vercel.app";
 
-async function sendEmbed(webhookUrl: string, content: string, embed: any) {
-  if (!webhookUrl) return;
+async function sendEmbed(channel: string, content: string, embed: any) {
   try {
-    await fetch(webhookUrl, {
+    await fetch(`/api/discord/${channel}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, embeds: [embed] }),
@@ -90,7 +86,7 @@ export async function notifyHuntCreated({
   const typeLabel = huntType === "solo" ? "Hunt Solo" : "PT Aberta";
   const link = `${APP_URL}/dashboard/hunts/${huntId}`;
 
-  await sendEmbed(HUNT_WEBHOOK, "@everyone", {
+  await sendEmbed("hunt", "@everyone", {
     title: `${emoji} ${typeLabel}: **${name}**`,
     description: `Nova hunt criada! [Clique aqui para se inscrever](${link})`,
     url: link,
@@ -115,7 +111,7 @@ export async function notifyHuntCompleted({
     fields.push({ name: "💰 Loot Total", value: `${totalLoot.toLocaleString("pt-BR")} gp`, inline: false });
   }
 
-  await sendEmbed(HUNT_WEBHOOK, "", {
+  await sendEmbed("hunt", "", {
     title: `✅ Hunt Encerrada: **${name}**`,
     description: `Hunt concluída. [Ver detalhes](${APP_URL}/dashboard/hunts/${huntId})`,
     fields,
@@ -132,7 +128,7 @@ export async function notifyHuntCancelled({
   name: string;
   huntId: string;
 }) {
-  await sendEmbed(HUNT_WEBHOOK, "", {
+  await sendEmbed("hunt", "", {
     title: `❌ Hunt Cancelada: **${name}**`,
     description: `Esta hunt foi cancelada. [Ver detalhes](${APP_URL}/dashboard/hunts/${huntId})`,
     color: 0xef4444,
@@ -180,7 +176,7 @@ export async function notifyHuntJoined({
     fields.push({ name: "🟡 Ainda precisa de", value: faltando, inline: false });
   }
 
-  await sendEmbed(HUNT_WEBHOOK, "", {
+  await sendEmbed("hunt", "", {
     title: `🟢 **${characterName}** entrou na PT: **${huntName}**`,
     description: `${characterVocation} Level ${characterLevel} acabou de entrar. [Ver hunt](${link})`,
     url: link,
@@ -226,7 +222,7 @@ export async function notifyEventCreated({
 
   const link = `${APP_URL}/dashboard/events/${eventId}`;
 
-  await sendEmbed(EVENT_WEBHOOK, "@everyone", {
+  await sendEmbed("event", "@everyone", {
     title: `${categoryIcon} ${category}: **${title}**`,
     description: `Novo evento oficial! [Clique aqui para se inscrever](${link})`,
     url: link,
@@ -250,7 +246,7 @@ export async function notifyEventJoined({
 }) {
   const link = `${APP_URL}/dashboard/events/${eventId}`;
 
-  await sendEmbed(EVENT_WEBHOOK, "", {
+  await sendEmbed("event", "", {
     title: `🟢 **${characterName}** (${characterVocation}) se inscreveu no evento`,
     description: `**${eventTitle}**\n[Ver evento](${link})`,
     color: 0x22c55e,
@@ -287,7 +283,7 @@ export async function notifyBossCreated({
     fields.push({ name: "👥 Vagas", value: `0/${maxParticipants}`, inline: true });
   }
 
-  await sendEmbed(BOSS_WEBHOOK, "@everyone", {
+  await sendEmbed("boss", "@everyone", {
     title: `💀 Boss: **${name}**`,
     description: `Novo boss adicionado! [Clique aqui para participar](${link})`,
     url: link,
@@ -311,7 +307,7 @@ export async function notifyBossJoined({
 }) {
   const link = `${APP_URL}/dashboard/bosses/${bossId}`;
 
-  await sendEmbed(BOSS_WEBHOOK, "", {
+  await sendEmbed("boss", "", {
     title: `🟢 **${characterName}** (${characterVocation}) vai participar do boss`,
     description: `**${bossName}**\n[Ver boss](${link})`,
     color: 0x22c55e,
