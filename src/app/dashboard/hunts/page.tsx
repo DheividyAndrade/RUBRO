@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { TIBIA_HUNTS } from "@/lib/tibia-hunts";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { Swords, Plus, Clock, Shield, Users, User, Lock, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -344,7 +346,7 @@ export default function HuntsPage() {
             </div>
           )}
 
-          <Input label="Hunt" value={formHuntName} onChange={(e) => setFormHuntName(e.target.value)} placeholder="Rotten Wasteland" />
+          <SearchableSelect label="Hunt" value={formHuntName} onChange={setFormHuntName} options={TIBIA_HUNTS} placeholder="Buscar hunt..." />
 
           <div className="grid grid-cols-2 gap-3">
             <Input label="Data" type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
