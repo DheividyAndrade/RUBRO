@@ -4,14 +4,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://*.supabase.
 
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'unsafe-eval'`,
-  `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' data: blob:`,
-  `font-src 'self'`,
-  `connect-src 'self' ${supabaseUrl} https://discord.com https://*.discord.com`,
-  `frame-ancestors 'none'`,
-  `base-uri 'self'`,
-  `form-action 'self'`,
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  `frame-src https://challenges.cloudflare.com`,
+  `connect-src 'self' ${supabaseUrl} https://discord.com https://*.discord.com https://challenges.cloudflare.com`,
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
 ].join("; ");
 
 const nextConfig: NextConfig = {
