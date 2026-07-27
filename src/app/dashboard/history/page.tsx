@@ -174,19 +174,35 @@ export default function HistoryPage() {
           {loot.length === 0 ? (
             <Card><p className="text-sm text-muted text-center py-8">Nenhum loot registrado.</p></Card>
           ) : (
-            loot.map((item) => (
-              <Card key={item.id}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{item.item_name}</p>
-                    <p className="text-xs text-muted">
-                      {item.hunt_id ? "Hunt" : item.boss_id ? "Boss" : "Outro"} · {fmt(item.created_at)}
-                    </p>
+            loot.map((item: any) => {
+              const rawSplits = item.split_among ?? [];
+              const splits: { user_id: string; amount: number }[] = rawSplits.map((s: any) =>
+                typeof s === "string" ? { user_id: s, amount: 0 } : s
+              );
+              return (
+                <Card key={item.id}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {item.hunt_id ? "Hunt" : item.boss_id ? "Boss" : "Geral"}
+                      </p>
+                      <p className="text-xs text-muted">{fmt(item.created_at)}</p>
+                    </div>
+                    <Badge variant="warning">{item.value.toLocaleString("pt-BR")} gp</Badge>
                   </div>
-                  <Badge variant="warning">{item.value.toLocaleString("pt-BR")} gp</Badge>
-                </div>
-              </Card>
-            ))
+                  {splits.length > 0 && (
+                    <div className="space-y-0.5 border-t border-border pt-2">
+                      {splits.map((s: any) => (
+                        <div key={s.user_id} className="flex items-center justify-between text-xs">
+                          <span className="text-muted">{s.user_id.substring(0, 8)}...</span>
+                          <span className="text-muted">{s.amount > 0 ? `${s.amount.toLocaleString("pt-BR")} gp` : "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
       )}
