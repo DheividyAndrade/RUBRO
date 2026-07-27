@@ -57,11 +57,38 @@ export async function notifyHuntCreated({
 
     const slotEntries = Object.entries(slots).filter(([, v]) => Number(v) > 0);
     if (slotEntries.length > 0) {
+      const slotsText = slotEntries.map(([voc, max]) => {
+        const m = Number(max);
+        const filled = voc === creatorVocation ? 1 : 0;
+        const falta = m - filled;
+        if (falta <= 0) return `**${voc}** ✅`;
+        return `**${voc}** ${filled}/${m}`;
+      }).join(" · ");
+
+      const faltaText = slotEntries
+        .filter(([voc, max]) => {
+          const filled = voc === creatorVocation ? 1 : 0;
+          return Number(max) - filled > 0;
+        })
+        .map(([voc, max]) => {
+          const falta = Number(max) - (voc === creatorVocation ? 1 : 0);
+          return `**${voc}** (falta ${falta})`;
+        })
+        .join(" · ");
+
       fields.push({
         name: "👥 Vagas",
-        value: slotEntries.map(([k, v]) => `**${k}**: ${v}`).join(" · "),
+        value: slotsText,
         inline: false,
       });
+
+      if (faltaText) {
+        fields.push({
+          name: "🟡 Ainda precisa de:",
+          value: faltaText,
+          inline: false,
+        });
+      }
     }
   }
 
