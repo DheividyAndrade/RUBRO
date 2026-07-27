@@ -141,6 +141,8 @@ export default function EventsPage() {
         startsAt: startsAt,
         location: formLocation || undefined,
         leader: formLeader || undefined,
+        minLevel: Number(formMinLevel) || undefined,
+        maxParticipants: Number(formMaxParticipants) || undefined,
       });
     }
 

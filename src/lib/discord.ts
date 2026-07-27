@@ -155,6 +155,8 @@ export async function notifyEventCreated({
   startsAt,
   location,
   leader,
+  minLevel,
+  maxParticipants,
 }: {
   title: string;
   eventId: string;
@@ -163,6 +165,8 @@ export async function notifyEventCreated({
   startsAt: string;
   location?: string;
   leader?: string;
+  minLevel?: number;
+  maxParticipants?: number;
 }) {
   const dateStr = new Date(startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const timeStr = new Date(startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -173,6 +177,8 @@ export async function notifyEventCreated({
   ];
   if (location) fields.push({ name: "📍 Local", value: location, inline: true });
   if (leader) fields.push({ name: "👤 Líder", value: leader, inline: true });
+  if (minLevel && minLevel > 0) fields.push({ name: "🛡️ Level mínimo", value: String(minLevel), inline: true });
+  if (maxParticipants && maxParticipants > 0) fields.push({ name: "👥 Máx. participantes", value: String(maxParticipants), inline: true });
 
   const link = `${APP_URL}/dashboard/events/${eventId}`;
 
