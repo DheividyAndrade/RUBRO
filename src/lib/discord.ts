@@ -201,24 +201,31 @@ export async function notifyBossCreated({
   weekday,
   spawnInterval,
   isOfficial,
+  maxParticipants,
 }: {
   name: string;
   bossId: string;
   weekday: number;
   spawnInterval: number;
   isOfficial: boolean;
+  maxParticipants?: number;
 }) {
   const link = `${APP_URL}/dashboard/bosses/${bossId}`;
+
+  const fields = [
+    { name: "📅 Dia", value: WEEKDAYS_DISCORD[weekday] ?? String(weekday), inline: true },
+    { name: "⏱️ Spawn", value: `a cada ${spawnInterval} dias`, inline: true },
+    { name: "🏷️ Tipo", value: isOfficial ? "Oficial" : "Simples", inline: true },
+  ];
+  if (maxParticipants && maxParticipants > 0) {
+    fields.push({ name: "👥 Vagas", value: `0/${maxParticipants}`, inline: true });
+  }
 
   await sendEmbed({
     title: `💀 Boss: **${name}**`,
     description: `Novo boss adicionado! [Clique aqui para participar](${link})`,
     url: link,
-    fields: [
-      { name: "📅 Dia", value: WEEKDAYS_DISCORD[weekday] ?? String(weekday), inline: true },
-      { name: "⏱️ Spawn", value: `a cada ${spawnInterval} dias`, inline: true },
-      { name: "🏷️ Tipo", value: isOfficial ? "Oficial" : "Simples", inline: true },
-    ],
+    fields,
     color: isOfficial ? 0xef4444 : 0xf59e0b,
     footer: { text: "Rubro Guild Manager — Bosses" },
     timestamp: new Date().toISOString(),

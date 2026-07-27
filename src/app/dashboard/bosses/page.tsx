@@ -34,6 +34,7 @@ export default function BossesPage() {
   const [formInterval, setFormInterval] = useState("15");
   const [formNotes, setFormNotes] = useState("");
   const [formOfficial, setFormOfficial] = useState(false);
+  const [formMaxPlayers, setFormMaxPlayers] = useState("0");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -69,6 +70,7 @@ export default function BossesPage() {
       weekday: Number(formWeekday),
       spawn_interval: Number(formInterval) || 15,
       is_official: isAdmin && formOfficial,
+      max_participants: Number(formMaxPlayers) || 0,
       notes: formNotes || null,
     }).select("id").single();
 
@@ -81,6 +83,7 @@ export default function BossesPage() {
         weekday: Number(formWeekday),
         spawnInterval: Number(formInterval) || 15,
         isOfficial: isAdmin && formOfficial,
+        maxParticipants: Number(formMaxPlayers) || 0,
       });
     }
 
@@ -90,6 +93,7 @@ export default function BossesPage() {
     setFormInterval("15");
     setFormNotes("");
     setFormOfficial(false);
+    setFormMaxPlayers("0");
     setSaving(false);
     loadAll();
   }
@@ -171,6 +175,7 @@ export default function BossesPage() {
           <Input label="Nome do Boss" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Ferumbras" />
           <Select label="Dia da Semana" value={formWeekday} onChange={(e) => setFormWeekday(e.target.value)} options={WEEKDAYS.map((d, i) => ({ value: String(i), label: d }))} />
           <Input label="Intervalo de spawn (dias)" type="number" value={formInterval} onChange={(e) => setFormInterval(e.target.value)} placeholder="15" />
+          <Input label="Máximo de participantes" type="number" value={formMaxPlayers} onChange={(e) => setFormMaxPlayers(e.target.value)} placeholder="0 = sem limite" />
           <Input label="Observações" value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Opcional" />
           {isAdmin && (
             <label className="flex items-center gap-2 cursor-pointer">
