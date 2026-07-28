@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, UserPlus } from "lucide-react";
 
 export default function Home() {
   return (
@@ -59,9 +59,9 @@ export default function Home() {
               rel="noopener noreferrer"
               className="block"
             >
-              <Button variant="ghost" className="w-full" size="lg">
-                <ExternalLink size={16} className="mr-2" />
-                Ingressar na Guilda
+              <Button variant="primary" className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary-hover hover:to-primary-hover" size="lg">
+                <UserPlus size={18} className="mr-2" />
+                INVITE GUILDA
               </Button>
             </a>
           </div>

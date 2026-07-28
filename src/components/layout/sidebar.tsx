@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
-  LayoutDashboard, Swords, Skull, ScrollText, Calendar, UserCircle, Shield, History, LogOut, CalendarDays, ExternalLink,
+  LayoutDashboard, Swords, Skull, ScrollText, Calendar, UserCircle, Shield, History, LogOut, CalendarDays, UserPlus,
 } from "lucide-react";
 
 const menuItems = [
@@ -65,10 +65,10 @@ export function Sidebar() {
           href="https://rubinot.com.br/guilds/RUBRO"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-foreground hover:bg-surface-hover transition-colors"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
         >
-          <ExternalLink size={18} />
-          Rubinot
+          <UserPlus size={18} />
+          INVITE GUILDA
         </a>
 
         <Link
