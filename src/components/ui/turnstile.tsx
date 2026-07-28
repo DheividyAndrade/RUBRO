@@ -8,9 +8,14 @@ interface TurnstileProps {
   onExpire?: () => void;
 }
 
+let globalScriptLoaded = false;
+const MAX_RETRIES = 20;
+
 export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRendered = useRef(false);
+  const retryCount = useRef(0);
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const callbacksRef = useRef({ onSuccess, onError, onExpire });
   callbacksRef.current = { onSuccess, onError, onExpire };
   const [mounted, setMounted] = useState(false);
@@ -18,7 +23,10 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   const renderWidget = useCallback(() => {
     if (!containerRef.current || widgetRendered.current) return;
     if (!window.turnstile) {
-      setTimeout(renderWidget, 300);
+      if (retryCount.current < MAX_RETRIES) {
+        retryCount.current++;
+        pendingTimer.current = setTimeout(renderWidget, 300);
+      }
       return;
     }
 
@@ -37,7 +45,7 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
   useEffect(() => {
     if (!mounted) return;
 
-    if (document.getElementById("cf-turnstile-script")) {
+    if (globalScriptLoaded) {
       renderWidget();
       return;
     }
@@ -47,11 +55,14 @@ export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
     script.defer = true;
-    script.onload = () => renderWidget();
+    script.onload = () => { globalScriptLoaded = true; renderWidget(); };
+    script.onerror = () => { globalScriptLoaded = true; };
     document.head.appendChild(script);
 
     return () => {
+      if (pendingTimer.current) clearTimeout(pendingTimer.current);
       widgetRendered.current = false;
+      retryCount.current = 0;
     };
   }, [mounted, renderWidget]);
 
