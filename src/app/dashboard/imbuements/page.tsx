@@ -8,6 +8,8 @@ import { Search, Coins, Clock, ChevronDown, ChevronUp, Swords, Shield, Sparkles,
 
 const SLOTS = ["Helmet", "Armor", "Shield"];
 
+const ITEM_IMG = (name: string) => `/api/item-image?name=${encodeURIComponent(name.replace(/ /g, "_").replace(/'/g, "%27"))}`;
+
 const CATEGORY_ICONS: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   "Mana Leech": { icon: Zap, color: "text-blue-400", label: "Mana Leech" },
   "Life Leech": { icon: Heart, color: "text-red-400", label: "Life Leech" },
@@ -178,9 +180,14 @@ export default function ImbuementsPage() {
                       <div className="space-y-1.5">
                         {imbu.items.map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-xs p-1.5 rounded bg-surface-hover">
-                            <div className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary/50" />
-                              <span>{item.name}</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <img
+                                src={ITEM_IMG(item.name)}
+                                alt={item.name}
+                                className="w-7 h-7 rounded object-contain bg-background flex-shrink-0"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                              />
+                              <span className="truncate">{item.name}</span>
                             </div>
                             <Badge variant="default">{item.quantity}x</Badge>
                           </div>
