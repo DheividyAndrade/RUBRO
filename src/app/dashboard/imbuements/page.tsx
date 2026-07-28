@@ -149,7 +149,7 @@ export default function ImbuementsPage() {
               const Icon = info?.icon;
               return (
                 <Card key={imbu.id} className="hover:border-primary/30 transition-colors">
-                  <div className="cursor-pointer" onClick={() => setExpanded(expanded === imbu.id ? null : imbu.id)}>
+                <div onClick={() => setExpanded(expanded === imbu.id ? null : imbu.id)} className="cursor-pointer">
                     <div className="flex items-start gap-3 mb-2">
                       <div className="flex-shrink-0">
                         {imbu.icon ? (
