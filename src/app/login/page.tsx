@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,8 +15,24 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [showSplash, setShowSplash] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    if (showSplash) {
+      const fadeTimer = setTimeout(() => setFadeOut(true), 3200);
+      const redirectTimer = setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 3800);
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(redirectTimer);
+      };
+    }
+  }, [showSplash, router]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -50,12 +66,18 @@ export default function LoginPage() {
       setError("Email ou senha inválidos.");
       setLoading(false);
     } else {
-      router.push("/dashboard");
-      router.refresh();
+      setShowSplash(true);
     }
   }
 
   return (
+    <>
+      {showSplash && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-700 ${fadeOut ? "opacity-0" : "opacity-100"}`}>
+          <img src="/abertura_site.gif" alt="Rubro" className="w-full h-full object-cover" />
+        </div>
+      )}
+
     <div className="min-h-screen flex">
       <div
         className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-black overflow-hidden"
@@ -141,5 +163,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
