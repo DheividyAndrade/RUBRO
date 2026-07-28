@@ -100,15 +100,34 @@ export async function notifyHuntCreated({
 export async function notifyHuntCompleted({
   name,
   huntId,
-  totalLoot,
+  participants,
+  lootTotal,
+  lootSplits,
 }: {
   name: string;
   huntId: string;
-  totalLoot?: number;
+  participants?: { name: string; vocation: string }[];
+  lootTotal?: number;
+  lootSplits?: { name: string; amount: number }[];
 }) {
   const fields = [];
-  if (totalLoot != null) {
-    fields.push({ name: "💰 Loot Total", value: `${totalLoot.toLocaleString("pt-BR")} gp`, inline: false });
+
+  if (participants && participants.length > 0) {
+    const partStr = participants
+      .map((p) => `**${p.vocation}** ${p.name}`)
+      .join("\n");
+    fields.push({ name: `👥 Participantes (${participants.length})`, value: partStr || "Nenhum", inline: false });
+  }
+
+  if (lootTotal != null && lootTotal > 0) {
+    fields.push({ name: "💰 Loot Total", value: `${lootTotal.toLocaleString("pt-BR")} gp`, inline: true });
+  }
+
+  if (lootSplits && lootSplits.length > 0) {
+    const splitStr = lootSplits
+      .map((s) => `**${s.name}**: ${s.amount.toLocaleString("pt-BR")} gp`)
+      .join("\n");
+    fields.push({ name: "💸 Divisão", value: splitStr, inline: false });
   }
 
   await sendEmbed("hunt", "", {

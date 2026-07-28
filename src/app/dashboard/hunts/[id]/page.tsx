@@ -195,7 +195,15 @@ export default function HuntDetailPage() {
   async function handleComplete() {
     await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
-    if (hunt) notifyHuntCompleted({ name: hunt.name, huntId: huntId });
+    if (hunt) {
+      const partList = participants
+        .filter((p) => !p.is_waiting)
+        .map((p) => ({
+          name: p.character?.name ?? "?",
+          vocation: p.character?.vocation ?? "?",
+        }));
+      notifyHuntCompleted({ name: hunt.name, huntId: huntId, participants: partList });
+    }
     await loadHunt();
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
   }
@@ -235,6 +243,32 @@ export default function HuntDetailPage() {
     });
 
     if (error) { setLootError(error.message); setSavingLoot(false); return; }
+
+    if (hunt) {
+      const partList = participants
+        .filter((p) => !p.is_waiting)
+        .map((p) => ({
+          name: p.character?.name ?? "?",
+          vocation: p.character?.vocation ?? "?",
+        }));
+      const splitList = lootSplitIds
+        .map((uid) => {
+          const p = participants.find((pt) => pt.user_id === uid);
+          return {
+            name: p?.character?.name ?? "?",
+            amount: Number(lootAmounts[uid]) || 0,
+          };
+        })
+        .filter((s) => s.amount > 0);
+      notifyHuntCompleted({
+        name: hunt.name,
+        huntId: huntId,
+        participants: partList,
+        lootTotal: totalValue,
+        lootSplits: splitList,
+      });
+    }
+
     setLootModalOpen(false);
     setLootSplitIds([]);
     setLootAmounts({});
