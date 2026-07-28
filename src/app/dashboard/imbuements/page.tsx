@@ -40,7 +40,7 @@ export default function ImbuementsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [slotFilter, setSlotFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(6);
 
   const categories = useMemo(() => {
     const cats = new Set(IMBUEMENTS.map((i) => i.category));
@@ -244,7 +244,7 @@ export default function ImbuementsPage() {
       {hasMore && (
         <div className="text-center mt-4">
           <button
-            onClick={() => setPageSize((p) => p + 12)}
+            onClick={() => setPageSize((p) => p + 6)}
             className="px-6 py-2 rounded-lg bg-surface-hover text-sm text-muted hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
           >
             Mostrar mais ({filtered.length - totalShown} restantes)

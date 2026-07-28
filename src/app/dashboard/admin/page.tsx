@@ -76,8 +76,12 @@ export default function AdminPage() {
     setEvents(events ?? []);
     setLoading(false);
 
-    const { data: gm } = await supabase.from("guild_members").select("*").order("character_name");
-    setGuildMembers(gm ?? []);
+    try {
+      const { data: gm } = await supabase.from("guild_members").select("character_name, id").order("character_name").limit(200);
+      setGuildMembers(gm ?? []);
+    } catch {
+      setGuildMembers([]);
+    }
   }
 
   async function handleUpdateRole(userId: string, role: string) {
