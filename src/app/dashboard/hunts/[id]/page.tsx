@@ -196,15 +196,6 @@ export default function HuntDetailPage() {
   async function handleComplete() {
     await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
-    if (hunt) {
-      const partList = participants
-        .filter((p) => !p.is_waiting)
-        .map((p) => ({
-          name: p.character?.name ?? "?",
-          vocation: p.character?.vocation ?? "?",
-        }));
-      notifyHuntCompleted({ name: hunt.name, huntId: huntId, participants: partList });
-    }
     await loadHunt();
     setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true);
   }
