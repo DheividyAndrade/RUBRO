@@ -74,9 +74,7 @@ export default function LoginPage() {
   return (
     <>
       {showSplash && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-700 ${fadeOut ? "opacity-0" : "opacity-100"}`}>
-          <img src="/abertura_site.gif" alt="Rubro" className="w-full h-full object-cover" />
-        </div>
+        <div className={`fixed inset-0 z-50 bg-black transition-opacity duration-700 ${fadeOut ? "opacity-0" : "opacity-100"}`} style={{ backgroundImage: "url(/abertura_site.gif)", backgroundSize: "90%", backgroundPosition: "center", backgroundRepeat: "no-repeat" }} />
       )}
 
     <div className="min-h-screen flex">
