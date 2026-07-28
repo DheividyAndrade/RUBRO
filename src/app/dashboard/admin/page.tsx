@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { VOCATIONS, type Vocation } from "@/lib/utils";
-import { Shield, Users, UserX, Trophy, Swords, Skull, ScrollText, Check, X } from "lucide-react";
+import { Shield, Users, UserX, Trophy, Swords, Skull, ScrollText, Check, X, Plus, Trash2 } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -39,7 +40,7 @@ export default function AdminPage() {
   const [members, setMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"members" | "hunts" | "events">("members");
+  const [tab, setTab] = useState<"members" | "hunts" | "events" | "guild">("members");
 
   const supabase = createClient();
 
@@ -74,6 +75,9 @@ export default function AdminPage() {
     setHunts(hunts ?? []);
     setEvents(events ?? []);
     setLoading(false);
+
+    const { data: gm } = await supabase.from("guild_members").select("*").order("character_name");
+    setGuildMembers(gm ?? []);
   }
 
   async function handleUpdateRole(userId: string, role: string) {
@@ -104,6 +108,8 @@ export default function AdminPage() {
 
   const [hunts, setHunts] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [guildMembers, setGuildMembers] = useState<any[]>([]);
+  const [newMemberName, setNewMemberName] = useState("");
 
   const roleBadge: Record<string, string> = {
     LEADER: "bg-primary/20 text-primary",
@@ -138,6 +144,7 @@ export default function AdminPage() {
           { key: "members" as const, label: "Membros", icon: Users },
           { key: "hunts" as const, label: "Hunts", icon: Swords },
           { key: "events" as const, label: "Eventos", icon: ScrollText },
+          { key: "guild" as const, label: "Guild", icon: Shield },
         ].map((t) => (
           <button
             key={t.key}
@@ -259,6 +266,50 @@ export default function AdminPage() {
                     <p className="text-xs text-muted">{ev.category} · {new Date(ev.starts_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</p>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => handleCancelEvent(ev.id)}>Cancelar</Button>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      )}
+
+      {tab === "guild" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Membros da Guilda (Rubinot)</CardTitle>
+            <p className="text-sm text-muted">Nomes aprovados para registro no site</p>
+          </CardHeader>
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Nome do personagem"
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              className="flex-1"
+            />
+            <Button size="sm" onClick={async () => {
+              if (!newMemberName.trim()) return;
+              const { error } = await supabase.from("guild_members").insert({ character_name: newMemberName.trim() });
+              if (!error) { setNewMemberName(""); loadData(); }
+            }}>
+              <Plus size={14} className="mr-1" /> Adicionar
+            </Button>
+          </div>
+          <div className="space-y-1">
+            {guildMembers.length === 0 ? (
+              <p className="text-sm text-muted p-2">Nenhum membro cadastrado.</p>
+            ) : (
+              guildMembers.map((m: any) => (
+                <div key={m.id} className="flex items-center justify-between p-3 rounded-lg bg-surface-hover">
+                  <span className="text-sm font-medium">{m.character_name}</span>
+                  <button
+                    onClick={async () => {
+                      await supabase.from("guild_members").delete().eq("id", m.id);
+                      loadData();
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-red-500/10 cursor-pointer"
+                  >
+                    <Trash2 size={14} className="text-red-400" />
+                  </button>
                 </div>
               ))
             )}
