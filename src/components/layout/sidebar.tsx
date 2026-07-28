@@ -5,15 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, Swords, Skull, ScrollText, Calendar, UserCircle, Shield,
-  History, LogOut, CalendarDays, UserPlus, FlaskRound, X,
+  History, LogOut, CalendarDays, UserPlus, FlaskRound, X, Lock, LockOpen,
 } from "lucide-react";
 
 interface SidebarProps {
   collapsed: boolean;
+  pinned: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   onExpand: () => void;
   onCollapse: () => void;
+  onTogglePin: () => void;
 }
 
 const menuItems = [
@@ -27,7 +29,7 @@ const menuItems = [
   { href: "/dashboard/profile", label: "Perfil", icon: UserCircle },
 ];
 
-export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onExpand, onCollapse }: SidebarProps) {
+export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand, onCollapse, onTogglePin }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -50,6 +52,13 @@ export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onExpand, onColl
           </div>
         </Link>
         <button
+          onClick={onTogglePin}
+          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors hidden lg:flex"
+          title={pinned ? "Soltar sidebar (hover)" : "Fixar sidebar (permanente)"}
+        >
+          {pinned ? <Lock size={18} className="text-primary" /> : <LockOpen size={18} className="text-muted" />}
+        </button>
+        <button
           onClick={onCloseMobile}
           className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors lg:hidden"
         >
@@ -60,7 +69,9 @@ export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onExpand, onColl
       <nav className="flex-1 p-3 md:p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = item.href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -138,8 +149,8 @@ export function Sidebar({ collapsed, mobileOpen, onCloseMobile, onExpand, onColl
         className={`fixed left-0 top-0 z-40 h-screen bg-surface border-r border-border hidden lg:flex flex-col transition-all duration-300 ${
           collapsed ? "w-16" : "w-64"
         }`}
-        onMouseEnter={onExpand}
-        onMouseLeave={onCollapse}
+        onMouseEnter={pinned ? undefined : onExpand}
+        onMouseLeave={pinned ? undefined : onCollapse}
       >
         {sidebarContent}
       </aside>
