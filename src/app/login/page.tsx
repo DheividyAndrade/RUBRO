@@ -23,11 +23,11 @@ export default function LoginPage() {
   useEffect(() => {
     if (showSplash) {
       router.prefetch("/dashboard");
-      const fadeTimer = setTimeout(() => setFadeOut(true), 2000);
+      const fadeTimer = setTimeout(() => setFadeOut(true), 3500);
       const redirectTimer = setTimeout(() => {
         router.push("/dashboard");
         router.refresh();
-      }, 2500);
+      }, 4000);
       return () => {
         clearTimeout(fadeTimer);
         clearTimeout(redirectTimer);
