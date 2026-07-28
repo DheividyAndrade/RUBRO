@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
-  LayoutDashboard, Swords, Skull, ScrollText, Calendar, UserCircle, Shield, History, LogOut, CalendarDays, UserPlus,
+  LayoutDashboard, Swords, Skull, ScrollText, Calendar, UserCircle, Shield, History, LogOut, CalendarDays, UserPlus, FlaskRound,
 } from "lucide-react";
 
 const menuItems = [
@@ -13,6 +13,7 @@ const menuItems = [
   { href: "/dashboard/bosses", label: "Bosses", icon: Skull },
   { href: "/dashboard/events", label: "Eventos", icon: CalendarDays },
   { href: "/dashboard/calendar", label: "Agenda", icon: Calendar },
+  { href: "/dashboard/imbuements", label: "Imbuements", icon: FlaskRound },
   { href: "/dashboard/history", label: "Histórico", icon: History },
   { href: "/dashboard/profile", label: "Perfil", icon: UserCircle },
 ];
