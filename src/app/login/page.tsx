@@ -87,7 +87,7 @@ export default function LoginPage() {
         <img
           src="/rubro.png"
           alt="Rubro"
-          className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float animate-glow"
+          className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float drop-shadow-[0_0_80px_rgba(220,38,38,0.35)]"
         />
       </div>
 

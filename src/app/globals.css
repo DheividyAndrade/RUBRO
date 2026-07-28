@@ -33,17 +33,10 @@ body {
   50% { transform: translateY(-12px); }
 }
 
-@keyframes glow-pulse {
-  0%, 100% { filter: drop-shadow(0 0 60px rgba(220,38,38,0.3)) drop-shadow(0 0 100px rgba(220,38,38,0.15)); }
-  50% { filter: drop-shadow(0 0 90px rgba(220,38,38,0.5)) drop-shadow(0 0 140px rgba(220,38,38,0.25)); }
-}
-
 .animate-float {
   animation: float 4s ease-in-out infinite;
-}
-
-.animate-glow {
-  animation: glow-pulse 3s ease-in-out infinite;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 * {

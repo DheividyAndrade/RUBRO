@@ -91,7 +91,7 @@ export default function RegisterPage() {
       <div className="min-h-screen flex">
         <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-black overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-black via-background/60 to-green-600/20 z-10" />
-          <img src="/rubro.png" alt="Rubro" className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float animate-glow" />
+          <img src="/rubro.png" alt="Rubro" className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float drop-shadow-[0_0_80px_rgba(220,38,38,0.35)]" />
         </div>
         <div className="flex-1 flex items-center justify-center p-6 bg-background">
           <div className="w-full max-w-sm text-center">
@@ -114,7 +114,7 @@ export default function RegisterPage() {
         <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-black overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-black via-background/60 to-primary/30 z-10" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.15),transparent_70%)]" />
-          <img src="/rubro.png" alt="Rubro" className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float animate-glow" />
+          <img src="/rubro.png" alt="Rubro" className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float drop-shadow-[0_0_80px_rgba(220,38,38,0.35)]" />
         </div>
         <div className="flex-1 flex items-center justify-center p-6 bg-background">
           <div className="w-full max-w-sm">
@@ -171,7 +171,7 @@ export default function RegisterPage() {
       <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-black overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-black via-background/60 to-primary/30 z-10" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(220,38,38,0.15),transparent_70%)]" />
-        <img src="/rubro.png" alt="Rubro" className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float animate-glow" />
+        <img src="/rubro.png" alt="Rubro" className="relative z-20 max-w-[420px] w-[75%] h-auto animate-float drop-shadow-[0_0_80px_rgba(220,38,38,0.35)]" />
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
