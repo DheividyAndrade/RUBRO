@@ -106,12 +106,14 @@ export async function notifyHuntCompleted({
   participants,
   lootTotal,
   lootSplits,
+  levelChange,
 }: {
   name: string;
   huntId: string;
   participants?: { name: string; vocation: string }[];
   lootTotal?: number;
   lootSplits?: { name: string; amount: number }[];
+  levelChange?: { oldLevel: number; newLevel: number };
 }) {
   const fields = [];
 
@@ -120,6 +122,16 @@ export async function notifyHuntCompleted({
       .map((p) => `**${p.vocation}** ${p.name}`)
       .join("\n");
     fields.push({ name: `👥 Participantes (${participants.length})`, value: partStr || "Nenhum", inline: false });
+  }
+
+  if (levelChange && levelChange.newLevel > 0 && levelChange.newLevel !== levelChange.oldLevel) {
+    const diff = levelChange.newLevel - levelChange.oldLevel;
+    const arrow = diff > 0 ? "⬆️" : "⬇️";
+    fields.push({
+      name: "📊 Level",
+      value: `${arrow} ${levelChange.oldLevel} → **${levelChange.newLevel}** (${diff > 0 ? "+" : ""}${diff})`,
+      inline: false,
+    });
   }
 
   if (lootTotal != null && lootTotal > 0) {

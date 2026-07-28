@@ -59,6 +59,7 @@ export default function HuntDetailPage() {
   const [lootModalOpen, setLootModalOpen] = useState(false);
   const [lootSplitIds, setLootSplitIds] = useState<string[]>([]);
   const [lootAmounts, setLootAmounts] = useState<Record<string, string>>({});
+  const [lootLevel, setLootLevel] = useState("");
   const [lootError, setLootError] = useState("");
   const [savingLoot, setSavingLoot] = useState(false);
 
@@ -205,7 +206,7 @@ export default function HuntDetailPage() {
       notifyHuntCompleted({ name: hunt.name, huntId: huntId, participants: partList });
     }
     await loadHunt();
-    setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
+    setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true);
   }
 
   async function handleCancel() {
@@ -213,7 +214,7 @@ export default function HuntDetailPage() {
     notifyAllHuntParticipants({ huntId, title: "Hunt cancelada", message: `${hunt?.name} foi cancelada.`, link: `/dashboard/hunts/${huntId}` });
     if (hunt) notifyHuntCancelled({ name: hunt.name, huntId: huntId });
     await loadHunt();
-    setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true);
+    setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true);
   }
 
   async function handleDeleteHunt() {
@@ -236,6 +237,13 @@ export default function HuntDetailPage() {
       if (amount <= 0) { setLootError("Informe o valor do loot."); setSavingLoot(false); return; }
       splits = [{ user_id: soloParticipant.user_id, amount }];
       totalValue = amount;
+
+      // Update character level if provided
+      const newLevel = Number(lootLevel);
+      const oldLevel = soloParticipant.character?.level ?? 0;
+      if (newLevel > 0 && newLevel !== oldLevel && soloParticipant.character_id) {
+        await supabase.from("characters").update({ level: newLevel }).eq("id", soloParticipant.character_id);
+      }
     } else {
       if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); setSavingLoot(false); return; }
       splits = lootSplitIds.map((uid) => ({
@@ -276,7 +284,11 @@ export default function HuntDetailPage() {
         huntId: huntId,
         participants: partList,
         lootTotal: totalValue,
-        lootSplits: splitList,
+        lootSplits: splitList.length > 0 ? splitList : undefined,
+        levelChange: hunt.hunt_type === "solo" ? {
+          oldLevel: participants[0]?.character?.level ?? 0,
+          newLevel: Number(lootLevel) || 0,
+        } : undefined,
       });
     }
 
@@ -346,7 +358,7 @@ export default function HuntDetailPage() {
             </>
           )}
           {canManage && hunt.status === "completed" && (
-            <Button size="sm" onClick={() => { setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootModalOpen(true); }}>
+            <Button size="sm" onClick={() => { setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true); }}>
               <Coins size={14} className="mr-1" /> Registrar Loot
             </Button>
           )}
@@ -532,6 +544,22 @@ export default function HuntDetailPage() {
                   className="w-40 px-2 py-1 rounded border border-border bg-background text-foreground text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <span className="text-xs text-muted">gp</span>
+              </div>
+
+              <p className="text-sm text-muted">Qual o level atual do personagem?</p>
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-surface-hover">
+                <span className="text-sm text-muted">
+                  {participants[0]?.character?.level != null
+                    ? `Level atual: ${participants[0].character.level}`
+                    : ""}
+                </span>
+                <input
+                  type="number"
+                  placeholder="Level"
+                  value={lootLevel}
+                  onChange={(e) => setLootLevel(e.target.value)}
+                  className="w-28 px-2 py-1 rounded border border-border bg-background text-foreground text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary ml-auto"
+                />
               </div>
             </>
           ) : (
