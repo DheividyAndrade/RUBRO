@@ -4,11 +4,10 @@ export async function GET(request: Request) {
   if (!name) return new Response(null, { status: 400 });
 
   try {
-    const wikiUrl = `https://www.tibiawiki.com.br/wiki/Especial:Redirecionar?file=${encodeURIComponent(name)}.gif`;
-    const res = await fetch(wikiUrl, {
-      redirect: "follow",
-      headers: { "User-Agent": "RubroGuildManager/1.0" },
-    });
+    const res = await fetch(
+      `https://tibia.fandom.com/wiki/Special:Redirect/file/${name}.gif`,
+      { redirect: "follow", headers: { "User-Agent": "RubroGuildManager/1.0" } }
+    );
 
     if (!res.ok) return new Response(null, { status: 404 });
 
