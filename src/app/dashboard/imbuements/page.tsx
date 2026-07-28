@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { IMBUEMENTS } from "@/lib/imbuements";
-import { Search, Coins, Clock, ChevronDown, ChevronUp, Swords, Shield, Sparkles, Zap, Flame, Snowflake, Skull, Gem, Heart, Droplets, Leaf, Sun } from "lucide-react";
+import { Search, Coins, Clock, ChevronDown, ChevronUp, Swords, Shield, Sparkles, Zap, Flame, Snowflake, Skull, Heart, Leaf, Sun, Timer, Package, Footprints } from "lucide-react";
 
 const SLOTS = ["Helmet", "Armor", "Shield"];
 
@@ -19,17 +19,20 @@ const CATEGORY_ICONS: Record<string, { icon: React.ElementType; color: string; l
   "Club": { icon: Swords, color: "text-amber-400", label: "Club" },
   "Fist": { icon: Swords, color: "text-orange-400", label: "Fist" },
   "Shielding": { icon: Shield, color: "text-emerald-400", label: "Shielding" },
-  "Death Protection": { icon: Skull, color: "text-gray-400", label: "Death" },
-  "Fire Protection": { icon: Flame, color: "text-red-500", label: "Fire" },
-  "Energy Protection": { icon: Zap, color: "text-blue-500", label: "Energy" },
-  "Ice Protection": { icon: Snowflake, color: "text-cyan-400", label: "Ice" },
-  "Earth Protection": { icon: Leaf, color: "text-green-500", label: "Earth" },
-  "Holy Protection": { icon: Sun, color: "text-yellow-300", label: "Holy" },
+  "Death Protection": { icon: Skull, color: "text-gray-400", label: "Death Prot" },
+  "Fire Protection": { icon: Flame, color: "text-red-500", label: "Fire Prot" },
+  "Energy Protection": { icon: Zap, color: "text-blue-500", label: "Energy Prot" },
+  "Ice Protection": { icon: Snowflake, color: "text-cyan-400", label: "Ice Prot" },
+  "Earth Protection": { icon: Leaf, color: "text-green-500", label: "Earth Prot" },
+  "Holy Protection": { icon: Sun, color: "text-yellow-300", label: "Holy Prot" },
   "Energy Damage": { icon: Zap, color: "text-blue-400", label: "Energy Dmg" },
   "Ice Damage": { icon: Snowflake, color: "text-cyan-400", label: "Ice Dmg" },
   "Death Damage": { icon: Skull, color: "text-gray-400", label: "Death Dmg" },
   "Fire Damage": { icon: Flame, color: "text-red-500", label: "Fire Dmg" },
   "Earth Damage": { icon: Leaf, color: "text-green-500", label: "Earth Dmg" },
+  "Capacity": { icon: Package, color: "text-amber-400", label: "Capacity" },
+  "Speed": { icon: Footprints, color: "text-teal-400", label: "Speed" },
+  "Paralysis": { icon: Timer, color: "text-pink-400", label: "Paralysis" },
 };
 
 export default function ImbuementsPage() {
@@ -119,7 +122,7 @@ export default function ImbuementsPage() {
 
         <div className="flex flex-wrap gap-1.5">
           <span className="text-xs text-muted mr-1 mt-1">Categoria:</span>
-          {categories.slice(0, 15).map((cat) => {
+          {categories.map((cat) => {
             const info = CATEGORY_ICONS[cat];
             const Icon = info?.icon;
             return (
