@@ -7,7 +7,9 @@ import { IMBUEMENTS } from "@/lib/imbuements";
 import { FlaskRound, Search, Coins, Clock, ChevronDown, ChevronUp } from "lucide-react";
 
 const SLOTS = ["Helmet", "Armor", "Shield"];
-const TIERS = ["Basic", "Intricate", "Powerful"];
+
+const WIKI_ITEM_IMG = (name: string) =>
+  `https://www.tibiawiki.com.br/wiki/Especial:Redirecionar?file=${encodeURIComponent(name)}.gif`;
 
 export default function ImbuementsPage() {
   const [search, setSearch] = useState("");
@@ -97,13 +99,19 @@ export default function ImbuementsPage() {
                   className="cursor-pointer"
                   onClick={() => setExpanded(expanded === imbu.id ? null : imbu.id)}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-3 mb-2">
+                    <img
+                      src={imbu.icon}
+                      alt={imbu.name}
+                      className="w-12 h-12 rounded object-contain bg-surface-hover flex-shrink-0"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-sm font-semibold">{imbu.name}</h3>
                         <Badge variant={tierVariant(imbu.tier)}>{imbu.tier}</Badge>
                       </div>
-                      <p className="text-xs text-muted mt-1">{imbu.effect}</p>
+                      <p className="text-xs text-muted mt-1 line-clamp-2">{imbu.effect}</p>
                     </div>
                     <button className="p-1 rounded hover:bg-surface-hover cursor-pointer flex-shrink-0">
                       {expanded === imbu.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -123,14 +131,19 @@ export default function ImbuementsPage() {
                 {expanded === imbu.id && (
                   <div className="mt-3 pt-3 border-t border-border/50">
                     <p className="text-xs text-muted mb-2">Itens necessários:</p>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {imbu.items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-primary/50" />
-                            <span>{item.name}</span>
+                        <div key={i} className="flex items-center gap-2">
+                          <img
+                            src={WIKI_ITEM_IMG(item.name)}
+                            alt={item.name}
+                            className="w-8 h-8 rounded object-contain bg-surface-hover flex-shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <div className="flex-1 flex items-center justify-between min-w-0">
+                            <span className="text-xs truncate">{item.name}</span>
+                            <Badge variant="default" className="flex-shrink-0">{item.quantity}x</Badge>
                           </div>
-                          <Badge variant="default">{item.quantity}x</Badge>
                         </div>
                       ))}
                     </div>
