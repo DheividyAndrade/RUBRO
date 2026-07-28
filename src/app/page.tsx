@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
 
 export default function Home() {
   return (
@@ -42,6 +43,27 @@ export default function Home() {
                 Criar conta
               </Button>
             </Link>
+
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/50" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-background px-2 text-muted">ou</span>
+              </div>
+            </div>
+
+            <a
+              href="https://rubinot.com.br/guilds/RUBRO"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <Button variant="ghost" className="w-full" size="lg">
+                <ExternalLink size={16} className="mr-2" />
+                Ingressar na Guilda
+              </Button>
+            </a>
           </div>
 
           <p className="text-xs text-muted/50 mt-8">
