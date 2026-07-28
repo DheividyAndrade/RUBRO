@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface TurnstileProps {
   onSuccess: (token: string) => void;
@@ -8,64 +8,68 @@ interface TurnstileProps {
   onExpire?: () => void;
 }
 
-let globalScriptLoaded = false;
-const MAX_RETRIES = 20;
+let scriptPromise: Promise<void> | null = null;
 
-export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetRendered = useRef(false);
-  const retryCount = useRef(0);
-  const pendingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const callbacksRef = useRef({ onSuccess, onError, onExpire });
-  callbacksRef.current = { onSuccess, onError, onExpire };
-  const [mounted, setMounted] = useState(false);
-
-  const renderWidget = useCallback(() => {
-    if (!containerRef.current || widgetRendered.current) return;
-    if (!window.turnstile) {
-      if (retryCount.current < MAX_RETRIES) {
-        retryCount.current++;
-        pendingTimer.current = setTimeout(renderWidget, 300);
-      }
-      return;
-    }
-
-    widgetRendered.current = true;
-    window.turnstile.render(containerRef.current, {
-      sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "",
-      callback: (token: string) => callbacksRef.current.onSuccess(token),
-      "error-callback": () => callbacksRef.current.onError?.(),
-      "expired-callback": () => callbacksRef.current.onExpire?.(),
-      theme: "dark",
-    });
-  }, []);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    if (globalScriptLoaded) {
-      renderWidget();
-      return;
-    }
-
+function loadScript(): Promise<void> {
+  if (scriptPromise) return scriptPromise;
+  scriptPromise = new Promise((resolve) => {
+    if (document.getElementById("cf-turnstile-script")) { resolve(); return; }
     const script = document.createElement("script");
     script.id = "cf-turnstile-script";
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
     script.async = true;
     script.defer = true;
-    script.onload = () => { globalScriptLoaded = true; renderWidget(); };
-    script.onerror = () => { globalScriptLoaded = true; };
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
     document.head.appendChild(script);
+  });
+  return scriptPromise;
+}
+
+export function Turnstile({ onSuccess, onError, onExpire }: TurnstileProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | undefined>(undefined);
+  const callbacks = useRef({ onSuccess, onError, onExpire });
+  callbacks.current = { onSuccess, onError, onExpire };
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadScript().then(() => {
+      if (cancelled || !ref.current || widgetId.current) return;
+      setReady(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !ref.current || widgetId.current) return;
+    const key = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+    if (!key) return;
+
+    let tries = 0;
+    const attempt = () => {
+      if (!window.turnstile) {
+        if (tries++ < 30) setTimeout(attempt, 100);
+        return;
+      }
+      widgetId.current = window.turnstile.render(ref.current!, {
+        sitekey: key,
+        callback: (token: string) => callbacks.current.onSuccess(token),
+        "error-callback": () => callbacks.current.onError?.(),
+        "expired-callback": () => callbacks.current.onExpire?.(),
+        theme: "dark",
+      });
+    };
+    attempt();
 
     return () => {
-      if (pendingTimer.current) clearTimeout(pendingTimer.current);
-      widgetRendered.current = false;
-      retryCount.current = 0;
+      if (widgetId.current && window.turnstile) {
+        window.turnstile.remove(widgetId.current);
+        widgetId.current = undefined;
+      }
     };
-  }, [mounted, renderWidget]);
+  }, [ready]);
 
-  if (!mounted) return null;
-  return <div ref={containerRef} />;
+  return <div ref={ref} />;
 }
