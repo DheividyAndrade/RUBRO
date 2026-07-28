@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Turnstile } from "@/components/ui/turnstile";
+import { ExternalLink } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -157,6 +158,11 @@ export default function LoginPage() {
           </Card>
 
           <p className="text-center text-xs text-muted/50 mt-6">
+            <a href="https://rubinot.com.br/guilds/RUBRO" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors inline-flex items-center gap-1">
+              <ExternalLink size={12} /> Ingressar na Guilda (Rubinot)
+            </a>
+          </p>
+          <p className="text-center text-xs text-muted/50 mt-1">
             &copy; {new Date().getFullYear()} Rubro Guilda. Todos os direitos reservados.
           </p>
         </div>
