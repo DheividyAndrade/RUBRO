@@ -8,6 +8,8 @@ import { Search, Coins, Clock, ChevronDown, ChevronUp, Swords, Shield, Sparkles,
 
 const SLOTS = ["Helmet", "Armor", "Shield"];
 
+const ITEM_IMG = (category: string, name: string) => `/imbuements/${category.toLowerCase().replace(/ /g, "_")}/${name.replace(/'/g, "%27").replace(/ /g, "_")}.gif`;
+
 const CATEGORY_ICONS: Record<string, { icon: React.ElementType; color: string; label: string }> = {
   "Mana Leech": { icon: Zap, color: "text-blue-400", label: "Mana Leech" },
   "Life Leech": { icon: Heart, color: "text-red-400", label: "Life Leech" },
@@ -151,8 +153,19 @@ export default function ImbuementsPage() {
                 <Card key={imbu.id} className="hover:border-primary/30 transition-colors">
                   <div className="cursor-pointer" onClick={() => setExpanded(expanded === imbu.id ? null : imbu.id)}>
                     <div className="flex items-start gap-3 mb-2">
-                      <div className={`p-2 rounded-lg bg-surface-hover flex-shrink-0 ${info?.color}`}>
-                        {Icon && <Icon size={22} />}
+                      <div className="flex-shrink-0 relative">
+                        <img
+                          src={imbu.icon}
+                          alt={imbu.name}
+                          className="w-10 h-10 rounded object-contain bg-surface-hover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = "none";
+                            (e.target as HTMLImageElement).parentElement!.querySelector(".fallback")?.classList.remove("hidden");
+                          }}
+                        />
+                        <div className={`fallback hidden p-2 rounded-lg bg-surface-hover flex-shrink-0 ${info?.color}`}>
+                          {Icon && <Icon size={22} />}
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -179,8 +192,17 @@ export default function ImbuementsPage() {
                         {imbu.items.map((item, i) => (
                           <div key={i} className="flex items-center justify-between text-xs p-1.5 rounded bg-surface-hover">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className={`w-3 h-3 rounded flex-shrink-0 ${info?.color ?? "bg-primary/50"} opacity-60`}>
-                                <div className="w-full h-full rounded ring-1 ring-inset ring-white/10" />
+                              <div className="w-7 h-7 flex items-center justify-center flex-shrink-0 relative">
+                                <img
+                                  src={ITEM_IMG(imbu.category, item.name)}
+                                  alt={item.name}
+                                  className="w-6 h-6 object-contain"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                    (e.target as HTMLImageElement).parentElement!.querySelector(".dot")?.classList.remove("hidden");
+                                  }}
+                                />
+                                <div className={`dot hidden w-2.5 h-2.5 rounded-full flex-shrink-0 ${info?.color ?? "bg-primary/50"} opacity-60 ring-1 ring-inset ring-white/10`} />
                               </div>
                               <span className="truncate">{item.name}</span>
                             </div>
