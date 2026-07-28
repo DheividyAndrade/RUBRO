@@ -85,10 +85,13 @@ export async function notifyHuntCreated({
   const emoji = huntType === "solo" ? "🔒" : "⚔️";
   const typeLabel = huntType === "solo" ? "Hunt Solo" : "PT Aberta";
   const link = `${APP_URL}/dashboard/hunts/${huntId}`;
+  const desc = huntType === "solo"
+    ? `Hunt solo de **${creatorName}**. Reservada apenas para o criador.`
+    : `Nova hunt criada! [Clique aqui para se inscrever](${link})`;
 
   await sendEmbed("hunt", "@everyone", {
     title: `${emoji} ${typeLabel}: **${name}**`,
-    description: `Nova hunt criada! [Clique aqui para se inscrever](${link})`,
+    description: desc,
     url: link,
     fields,
     color: huntType === "solo" ? 0x6b7280 : 0xdc2626,
