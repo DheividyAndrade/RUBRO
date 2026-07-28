@@ -143,12 +143,12 @@ export default function ImbuementsPage() {
           <h2 className="text-lg font-semibold flex items-center gap-2">
             {slotIcon(slot)} {slot}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-0">
             {items.map((imbu) => {
               const info = CATEGORY_ICONS[imbu.category];
               const Icon = info?.icon;
               return (
-                <Card key={imbu.id} className="hover:border-primary/30 transition-colors h-fit mb-3">
+                <Card key={imbu.id} className="hover:border-primary/30 transition-colors h-fit rounded-none border-b-0">
                 <div onClick={(e) => { e.stopPropagation(); setExpanded(expanded === imbu.id ? null : imbu.id); }} className="cursor-pointer">
                     <div className="flex items-start gap-3 mb-2">
                       <div className="flex-shrink-0">
