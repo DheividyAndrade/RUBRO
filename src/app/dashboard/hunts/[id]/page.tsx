@@ -223,17 +223,28 @@ export default function HuntDetailPage() {
   }
 
   async function handleSaveLoot() {
-    if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); return; }
     setSavingLoot(true);
     setLootError("");
 
-    const splits = lootSplitIds.map((uid) => ({
-      user_id: uid,
-      amount: Number(lootAmounts[uid]) || 0,
-    }));
+    let splits: { user_id: string; amount: number }[] = [];
+    let totalValue = 0;
 
-    const totalValue = splits.reduce((sum, s) => sum + s.amount, 0);
-    if (totalValue <= 0) { setLootError("Informe os valores para cada jogador."); setSavingLoot(false); return; }
+    if (hunt?.hunt_type === "solo") {
+      const soloParticipant = participants.find((p) => !p.is_waiting);
+      if (!soloParticipant) { setLootError("Nenhum participante na hunt."); setSavingLoot(false); return; }
+      const amount = Number(lootAmounts[soloParticipant.user_id] || 0);
+      if (amount <= 0) { setLootError("Informe o valor do loot."); setSavingLoot(false); return; }
+      splits = [{ user_id: soloParticipant.user_id, amount }];
+      totalValue = amount;
+    } else {
+      if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); setSavingLoot(false); return; }
+      splits = lootSplitIds.map((uid) => ({
+        user_id: uid,
+        amount: Number(lootAmounts[uid]) || 0,
+      }));
+      totalValue = splits.reduce((sum, s) => sum + s.amount, 0);
+      if (totalValue <= 0) { setLootError("Informe os valores para cada jogador."); setSavingLoot(false); return; }
+    }
 
     const { error } = await supabase.from("loot_history").insert({
       hunt_id: huntId,
@@ -503,8 +514,28 @@ export default function HuntDetailPage() {
         </div>
       </Modal>
 
-      <Modal open={lootModalOpen} onClose={() => setLootModalOpen(false)} title="Dividir Loot">
+      <Modal open={lootModalOpen} onClose={() => setLootModalOpen(false)} title={hunt?.hunt_type === "solo" ? "Registrar Loot" : "Dividir Loot"}>
         <div className="space-y-4">
+          {hunt?.hunt_type === "solo" ? (
+            <>
+              <p className="text-sm text-muted">Informe o valor total do loot:</p>
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-surface-hover">
+                <span className={`text-sm font-medium ${participants[0]?.character?.vocation ? VOCATIONS[participants[0].character.vocation].color : ""}`}>
+                  {participants[0]?.character?.vocation ?? ""}
+                </span>
+                <span className="text-sm flex-1">{participants[0]?.character?.name ?? "..."}</span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={lootAmounts[participants[0]?.user_id] ?? ""}
+                  onChange={(e) => participants[0] && setAmount(participants[0].user_id, e.target.value)}
+                  className="w-40 px-2 py-1 rounded border border-border bg-background text-foreground text-sm text-right focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <span className="text-xs text-muted">gp</span>
+              </div>
+            </>
+          ) : (
+            <>
           <p className="text-sm text-muted">Informe quanto cada jogador vai receber:</p>
           {participants.filter((p) => !p.is_waiting).length > 0 ? (
             <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -557,13 +588,25 @@ export default function HuntDetailPage() {
               Limpar
             </button>
           </div>
-          {lootSplitIds.length > 0 && (
-            <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
-              Total: {lootSplitIds.reduce((sum, uid) => sum + (Number(lootAmounts[uid]) || 0), 0).toLocaleString("pt-BR")} gp
-            </div>
+            </>
+          )}
+          {hunt?.hunt_type === "solo" ? (
+            participants[0] && Number(lootAmounts[participants[0].user_id] || 0) > 0 && (
+              <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
+                Total: {Number(lootAmounts[participants[0].user_id] || 0).toLocaleString("pt-BR")} gp
+              </div>
+            )
+          ) : (
+            lootSplitIds.length > 0 && (
+              <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
+                Total: {lootSplitIds.reduce((sum, uid) => sum + (Number(lootAmounts[uid]) || 0), 0).toLocaleString("pt-BR")} gp
+              </div>
+            )
           )}
           {lootError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400 flex items-center gap-2"><AlertCircle size={16} />{lootError}</div>}
-          <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>{savingLoot ? "Salvando..." : "Registrar Divisão"}</Button>
+          <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
+            {savingLoot ? "Salvando..." : hunt?.hunt_type === "solo" ? "Registrar Loot" : "Registrar Divisão"}
+          </Button>
         </div>
       </Modal>
     </div>
