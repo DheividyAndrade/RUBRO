@@ -75,7 +75,7 @@ export default function LoginPage() {
     <>
       {showSplash && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-700 ${fadeOut ? "opacity-0" : "opacity-100"}`}>
-          <img src="/abertura_site.gif" alt="Rubro" className="absolute inset-0 w-full h-full object-fill" />
+          <img src="/abertura_site.gif" alt="Rubro" className="absolute inset-0 w-full h-full object-cover scale-95" />
         </div>
       )}
 
