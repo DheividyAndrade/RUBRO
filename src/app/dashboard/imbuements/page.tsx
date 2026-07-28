@@ -40,6 +40,7 @@ export default function ImbuementsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [slotFilter, setSlotFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(12);
 
   const categories = useMemo(() => {
     const cats = new Set(IMBUEMENTS.map((i) => i.category));
@@ -47,6 +48,7 @@ export default function ImbuementsPage() {
   }, []);
 
   const filtered = useMemo(() => {
+    setPageSize(12); // eslint-disable-line react-hooks/rules-of-hooks
     let list = IMBUEMENTS;
     if (slotFilter) list = list.filter((i) => i.slot === slotFilter);
     if (categoryFilter) list = list.filter((i) => i.category === categoryFilter);
@@ -65,12 +67,22 @@ export default function ImbuementsPage() {
 
   const groupedBySlot = useMemo(() => {
     const groups: Record<string, typeof IMBUEMENTS> = {};
-    filtered.forEach((i) => {
+    let count = 0;
+    const sorted = [...filtered].sort((a, b) => {
+      const slotOrder = ["Helmet", "Armor", "Shield"];
+      return slotOrder.indexOf(a.slot) - slotOrder.indexOf(b.slot);
+    });
+    for (const i of sorted) {
+      if (count >= pageSize) break;
       if (!groups[i.slot]) groups[i.slot] = [];
       groups[i.slot].push(i);
-    });
+      count++;
+    }
     return groups;
-  }, [filtered]);
+  }, [filtered, pageSize]);
+
+  const totalShown = Object.values(groupedBySlot).reduce((sum, items) => sum + items.length, 0);
+  const hasMore = filtered.length > totalShown;
 
   const tierVariant = (tier: string) => {
     if (tier === "Basic") return "success";
@@ -228,6 +240,17 @@ export default function ImbuementsPage() {
           </div>
         </div>
       ))}
+
+      {hasMore && (
+        <div className="text-center mt-4">
+          <button
+            onClick={() => setPageSize((p) => p + 12)}
+            className="px-6 py-2 rounded-lg bg-surface-hover text-sm text-muted hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
+          >
+            Mostrar mais ({filtered.length - totalShown} restantes)
+          </button>
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <Card>
