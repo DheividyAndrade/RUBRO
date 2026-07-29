@@ -72,7 +72,7 @@ export default function HuntsPage() {
     setMyRole(profile?.role ?? "MEMBER");
 
     const [{ data: huntsData }, { data: chars }] = await Promise.all([
-      supabase.from("hunts").select("*").order("scheduled_at", { ascending: true }),
+      supabase.from("hunts").select("*").in("status", ["open", "full"]).order("scheduled_at", { ascending: true }),
       supabase.from("characters").select("id,name,vocation,level").eq("user_id", user.id),
     ]);
 

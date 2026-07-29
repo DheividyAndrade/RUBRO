@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VOCATIONS, type Vocation } from "@/lib/utils";
-import { History, Skull, Swords, Coins, User, Clock } from "lucide-react";
+import { History, Skull, Swords, Coins, User, Clock, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<"hunts" | "bosses" | "loot">("hunts");
@@ -13,6 +14,7 @@ export default function HistoryPage() {
   const [bosses, setBosses] = useState<any[]>([]);
   const [loot, setLoot] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedHunt, setExpandedHunt] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => { loadHistory(); }, [tab]);
@@ -26,7 +28,7 @@ export default function HistoryPage() {
     ] = await Promise.all([
       supabase
         .from("hunts")
-        .select("id, name, scheduled_at, created_at, status, hunt_type")
+        .select("id, name, scheduled_at, created_at, status, hunt_type, end_time")
         .in("status", ["completed", "cancelled"])
         .order("scheduled_at", { ascending: false })
         .limit(30),
@@ -65,12 +67,21 @@ export default function HistoryPage() {
     });
 
     const huntMap = new Map<string, any>();
+    const huntLootMap = new Map<string, any[]>();
     (huntsData ?? []).forEach((h: any) => huntMap.set(h.id, h));
+    (lootData ?? []).forEach((l: any) => {
+      if (l.hunt_id) {
+        if (!huntLootMap.has(l.hunt_id)) huntLootMap.set(l.hunt_id, []);
+        huntLootMap.get(l.hunt_id)!.push(l);
+      }
+    });
 
     if (huntsData && huntsData.length > 0) {
       setHunts(huntsData.map((h: any) => ({
         ...h,
         participants: partsByHunt.get(h.id) ?? [],
+        loot: huntLootMap.get(h.id) ?? [],
+        duration: getDuration(h.scheduled_at, h.created_at),
       })));
     } else {
       setHunts([]);
@@ -136,36 +147,74 @@ export default function HistoryPage() {
           {hunts.length === 0 ? (
             <Card><p className="text-sm text-muted text-center py-8">Nenhuma hunt concluída.</p></Card>
           ) : (
-            hunts.map((h) => (
-              <Card key={h.id}>
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{h.name}</h3>
-                      <Badge variant={h.status === "completed" ? "success" : "danger"}>
-                        {h.status === "completed" ? "Concluída" : "Cancelada"}
-                      </Badge>
+            hunts.map((h) => {
+              const isExpanded = expandedHunt === h.id;
+              const totalLoot = (h.loot ?? []).reduce((sum: number, l: any) => sum + (l.value || 0), 0);
+              return (
+                <Card key={h.id}>
+                  <div
+                    className="cursor-pointer flex items-start justify-between"
+                    onClick={() => setExpandedHunt(isExpanded ? null : h.id)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold">{h.name}</h3>
+                        {h.hunt_type === "solo" && <Badge variant="default">Solo</Badge>}
+                        <Badge variant={h.status === "completed" ? "success" : "danger"}>
+                          {h.status === "completed" ? "Concluída" : "Cancelada"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted mt-1">
+                        <span><Clock size={12} className="inline mr-1" />{fmt(h.scheduled_at)}</span>
+                        {h.duration && <span>· ⏱️ {h.duration}</span>}
+                        <span>· {h.participants?.length ?? 0} participantes</span>
+                        {totalLoot > 0 && <span>· 💰 {totalLoot.toLocaleString("pt-BR")} gp</span>}
+                      </div>
                     </div>
-                    <p className="text-xs text-muted mt-1"><Clock size={12} className="inline mr-1" />{fmt(h.scheduled_at)}</p>
+                    <button className="p-1 rounded hover:bg-surface-hover cursor-pointer">
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
                   </div>
-                </div>
-                {h.participants && h.participants.length > 0 && (
-                  <div>
-                    <p className="text-xs text-muted mb-1">Participantes ({h.participants.length}):</p>
-                    <div className="flex flex-wrap gap-1">
-                      {h.participants.map((p: any, i: number) => (
-                        <span key={i} className="text-xs px-2 py-0.5 rounded bg-surface-hover">
-                        <span className={p.character?.vocation ? VOCATIONS[p.character.vocation as Vocation]?.color : "text-muted"}>
-                          {p.character?.vocation ?? "?"}
-                          </span>{" "}
-                          {p.character?.name ?? p.profile?.display_name ?? "?"}
-                        </span>
-                      ))}
+
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
+                      {h.participants?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-muted mb-1">Participantes ({h.participants.length}):</p>
+                          <div className="flex flex-wrap gap-1">
+                            {h.participants.map((p: any, i: number) => (
+                              <span key={i} className="text-xs px-2 py-0.5 rounded bg-surface-hover">
+                                <span className={p.character?.vocation ? VOCATIONS[p.character.vocation as Vocation]?.color : "text-muted"}>
+                                  {p.character?.vocation ?? "?"}
+                                </span>{" "}
+                                {p.character?.name ?? "?"}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {h.loot?.length > 0 && (
+                        <div>
+                          <p className="text-xs text-muted mb-1">Loot:</p>
+                          {h.loot.map((l: any) => (
+                            <div key={l.id} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-surface-hover mb-1">
+                              <span>{l.item_name}</span>
+                              <Badge variant="warning">{l.value.toLocaleString("pt-BR")} gp</Badge>
+                            </div>
+                          ))}
+                          <p className="text-xs text-muted">Total: <span className="text-primary">{totalLoot.toLocaleString("pt-BR")} gp</span></p>
+                        </div>
+                      )}
+
+                      <Link href={`/dashboard/hunts/${h.id}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                        Ver detalhes completos <ArrowRight size={12} />
+                      </Link>
                     </div>
-                  </div>
-                )}
-              </Card>
-            ))
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
       )}
