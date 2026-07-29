@@ -40,8 +40,8 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
   }
 
   const sidebarContent = (
-    <div className="flex flex-col h-full">
-      <div className="p-4 md:p-6 border-b border-border flex items-center gap-3">
+    <div className="flex flex-col h-full w-full">
+      <div className="border-b border-border flex items-center gap-1.5 p-2 md:px-3 md:py-5 lg:px-5">
         <Link href="/dashboard" className="flex items-center gap-3 flex-1" onClick={onCloseMobile}>
           <div className="p-1.5 bg-primary rounded-lg flex-shrink-0">
             <Swords className="w-4 h-4 md:w-5 md:h-5 text-primary-foreground" />
@@ -53,10 +53,10 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
         </Link>
         <button
           onClick={onTogglePin}
-          className="p-1.5 rounded-lg hover:bg-surface-hover transition-colors hidden lg:flex"
-          title={pinned ? "Soltar sidebar (hover)" : "Fixar sidebar (permanente)"}
+          className="p-0.5 rounded hover:bg-surface-hover transition-colors flex-shrink-0"
+          title={pinned ? "Soltar sidebar" : "Fixar sidebar"}
         >
-          {pinned ? <Lock size={18} className="text-primary" /> : <LockOpen size={18} className="text-muted" />}
+          {pinned ? <Lock size={13} className="text-primary" /> : <LockOpen size={13} className="text-muted" />}
         </button>
         <button
           onClick={onCloseMobile}
@@ -66,7 +66,7 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
         </button>
       </div>
 
-      <nav className="flex-1 p-3 md:p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 space-y-1 overflow-y-auto py-2 px-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = item.href === "/dashboard"
@@ -78,6 +78,8 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
               href={item.href}
               onClick={onCloseMobile}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                collapsed ? "lg:justify-center lg:px-0" : ""
+              } ${
                 isActive ? "bg-primary/10 text-primary" : "text-muted hover:text-foreground hover:bg-surface-hover"
               }`}
               title={collapsed ? item.label : undefined}
@@ -91,11 +93,13 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
         })}
       </nav>
 
-      <div className="p-3 md:p-4 border-t border-border space-y-1">
+      <div className="border-t border-border space-y-1 py-2 px-1">
         <Link
           href="/dashboard/admin"
           onClick={onCloseMobile}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            collapsed ? "lg:justify-center lg:px-0" : ""
+          } ${
             pathname === "/dashboard/admin" ? "bg-primary/10 text-primary" : "text-muted hover:text-foreground hover:bg-surface-hover"
           }`}
           title={collapsed ? "Painel do Líder" : undefined}
@@ -110,7 +114,9 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
           href="https://rubinot.com.br/guilds/RUBRO"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors ${
+            collapsed ? "lg:justify-center lg:px-0" : ""
+          }`}
           title={collapsed ? "INVITE GUILDA" : undefined}
         >
           <UserPlus size={18} className="flex-shrink-0" />
@@ -121,7 +127,9 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
 
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors w-full cursor-pointer"
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors w-full cursor-pointer ${
+            collapsed ? "lg:justify-center lg:px-0" : ""
+          }`}
           title={collapsed ? "Sair" : undefined}
         >
           <LogOut size={18} className="flex-shrink-0" />
@@ -129,6 +137,7 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
             Sair
           </span>
         </button>
+
       </div>
     </div>
   );
@@ -146,7 +155,7 @@ export function Sidebar({ collapsed, pinned, mobileOpen, onCloseMobile, onExpand
 
       {/* Desktop sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-40 h-screen bg-surface border-r border-border hidden lg:flex flex-col transition-all duration-300 ${
+        className={`fixed left-0 top-0 z-40 h-screen bg-surface border-r border-border hidden lg:flex flex-col transition-all duration-300 overflow-hidden ${
           collapsed ? "w-16" : "w-64"
         }`}
         onMouseEnter={pinned ? undefined : onExpand}
