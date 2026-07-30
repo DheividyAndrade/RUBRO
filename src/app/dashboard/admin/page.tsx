@@ -103,16 +103,16 @@ export default function AdminPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch("/api/admin/delete-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token ?? ""}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (!data.ok) { alert("Erro: " + (data.error ?? "Falha ao deletar")); return; }
-    } catch {
-      alert("Erro ao deletar conta.");
+      if (!data.ok) {
+        alert("Erro: " + (data.error ?? "Falha ao deletar"));
+        return;
+      }
+    } catch (e: any) {
+      alert("Erro: " + (e?.message ?? "Falha ao deletar conta."));
       return;
     }
     loadData();
