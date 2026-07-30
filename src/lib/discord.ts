@@ -349,3 +349,21 @@ export async function notifyBossJoined({
     timestamp: new Date().toISOString(),
   });
 }
+
+export async function notifyLevelMilestone({
+  characterName,
+  characterVocation,
+  level,
+}: {
+  characterName: string;
+  characterVocation: string;
+  level: number;
+}) {
+  await sendEmbed("hunt", "", {
+    title: `🎉 **${characterName}** (${characterVocation}) alcançou Level **${level}**!`,
+    description: `Parabéns ${characterName}! Continue evoluindo! 🔥`,
+    color: 0xf59e0b,
+    footer: { text: "Rubro Guild Manager" },
+    timestamp: new Date().toISOString(),
+  });
+}

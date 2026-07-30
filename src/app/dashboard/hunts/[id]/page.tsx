@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
 import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntJoined } from "@/lib/discord";
+import { notifyLevelMilestone } from "@/lib/discord";
 import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
 interface Hunt {
@@ -234,6 +235,15 @@ export default function HuntDetailPage() {
       const oldLevel = soloParticipant.character?.level ?? 0;
       if (newLevel > 0 && newLevel !== oldLevel && soloParticipant.character_id) {
         await supabase.from("characters").update({ level: newLevel }).eq("id", soloParticipant.character_id);
+
+        // Notify century milestone
+        if (newLevel > oldLevel && Math.floor(oldLevel / 100) < Math.floor(newLevel / 100)) {
+          notifyLevelMilestone({
+            characterName: soloParticipant.character?.name ?? "?",
+            characterVocation: soloParticipant.character?.vocation ?? "?",
+            level: newLevel,
+          });
+        }
       }
     } else {
       if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); setSavingLoot(false); return; }

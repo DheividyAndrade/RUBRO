@@ -95,6 +95,29 @@ export default function AdminPage() {
     loadData();
   }
 
+  async function handleDeleteAccount(userId: string, displayName: string) {
+    if (!confirm(`DELETAR PERMANENTEMENTE a conta de ${displayName}? Esta ação não pode ser desfeita!`)) return;
+    if (!confirm("Tem certeza ABSOLUTA? Todos os dados serão perdidos.")) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!data.ok) { alert("Erro: " + (data.error ?? "Falha ao deletar")); return; }
+    } catch {
+      alert("Erro ao deletar conta.");
+      return;
+    }
+    loadData();
+  }
+
   async function handleCancelHunt(huntId: string) {
     await supabase.from("hunts").update({ status: "cancelled" }).eq("id", huntId);
     loadData();
@@ -215,8 +238,11 @@ export default function AdminPage() {
                         ]}
                         className="w-28 text-xs"
                       />
-                      <button onClick={() => handleRemoveMember(m.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 cursor-pointer">
+                      <button onClick={() => handleRemoveMember(m.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 cursor-pointer" title="Rebaixar">
                         <UserX size={16} className="text-red-400" />
+                      </button>
+                      <button onClick={() => handleDeleteAccount(m.id, m.display_name)} className="p-1.5 rounded-lg hover:bg-red-500/10 cursor-pointer" title="Deletar conta">
+                        <Trash2 size={16} className="text-red-500" />
                       </button>
                     </div>
                   </div>

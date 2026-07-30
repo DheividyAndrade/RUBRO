@@ -18,8 +18,17 @@ export default function LoginPage() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [showSplash, setShowSplash] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("rubro_saved_email");
+    if (saved) {
+      setEmail(saved);
+      setRememberEmail(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (showSplash) {
@@ -68,6 +77,11 @@ export default function LoginPage() {
       setError("Email ou senha inválidos.");
       setLoading(false);
     } else {
+      if (rememberEmail) {
+        localStorage.setItem("rubro_saved_email", email);
+      } else {
+        localStorage.removeItem("rubro_saved_email");
+      }
       setShowSplash(true);
     }
   }
@@ -136,6 +150,16 @@ export default function LoginPage() {
                   onExpire={() => setTurnstileToken("")}
                 />
               </div>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberEmail}
+                  onChange={(e) => setRememberEmail(e.target.checked)}
+                  className="rounded border-border bg-surface checked:bg-primary h-4 w-4"
+                />
+                <span className="text-xs text-muted">Lembrar email</span>
+              </label>
 
               <Button type="submit" className="w-full" disabled={loading || !turnstileToken}>
                 {loading ? "Entrando..." : "Entrar"}
