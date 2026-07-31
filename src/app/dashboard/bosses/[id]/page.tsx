@@ -7,8 +7,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
-import { VOCATIONS, type Vocation, WEEKDAYS } from "@/lib/utils";
-import { notifyBossJoined } from "@/lib/discord";
+import { VOCATIONS, type Vocation, WEEKDAYS, sharedExpRange } from "@/lib/utils";
+import { notifyBossJoined, notifyBossRotationUpdated } from "@/lib/discord";
 import { ArrowLeft, Clock, Shield, User, Check, X, Skull, Calendar } from "lucide-react";
 
 interface Boss {
@@ -17,6 +17,9 @@ interface Boss {
   weekday: number;
   spawn_interval: number;
   is_official: boolean;
+  max_participants: number;
+  discord_message_id: string | null;
+  rotation_group: string | null;
   last_killed_at: string | null;
   notes: string | null;
   created_by: string;
@@ -43,6 +46,7 @@ export default function BossDetailPage() {
   const [myUserId, setMyUserId] = useState("");
   const [myRole, setMyRole] = useState("MEMBER");
   const [loading, setLoading] = useState(true);
+  const [sharedRange, setSharedRange] = useState<{ min: number; max: number } | null>(null);
   const [joinCharId, setJoinCharId] = useState("");
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [error, setError] = useState("");
@@ -79,6 +83,13 @@ export default function BossDetailPage() {
     setMyChars(c ?? []);
     setMyRole(prof?.role ?? "MEMBER");
     setLoading(false);
+
+    if (b) {
+      const creatorPart = mapped.find((p) => p.user_id === b.created_by);
+      if (creatorPart?.character?.level) {
+        setSharedRange(sharedExpRange(creatorPart.character.level));
+      }
+    }
   }
 
   async function handleJoin() {
@@ -102,12 +113,49 @@ export default function BossDetailPage() {
     }
 
     if (boss) {
-      notifyBossJoined({
-        bossName: boss.name,
-        bossId: bossId,
-        characterName: char.name,
-        characterVocation: char.vocation,
-      });
+      if (boss.rotation_group && boss.discord_message_id) {
+        const { data: groupBosses } = await supabase.from("bosses").select("id, name, weekday, spawn_interval, max_participants, discord_message_id").eq("rotation_group", boss.rotation_group);
+        const bossWithParts = await Promise.all(
+          (groupBosses ?? []).map(async (b: any) => {
+            const { data: parts } = await supabase.from("boss_participants").select("character_id").eq("boss_id", b.id);
+            const pIds = [...new Set((parts ?? []).map((p: any) => p.character_id).filter(Boolean))];
+            let pNames: { name: string; vocation: string }[] = [];
+            if (pIds.length > 0) {
+              const { data: chars } = await supabase.from("characters").select("name, vocation").in("id", pIds);
+              pNames = (chars ?? []).map((c: any) => ({ name: c.name, vocation: c.vocation }));
+            }
+            return { name: b.name, bossId: b.id, weekday: b.weekday, spawnInterval: b.spawn_interval, minLevel: 0, maxParticipants: b.max_participants || 0, participants: pNames };
+          })
+        );
+        notifyBossRotationUpdated({ messageId: boss.discord_message_id, bosses: bossWithParts });
+      } else if (boss.discord_message_id) {
+        const { data: updatedParts } = await supabase
+          .from("boss_participants")
+          .select("character_id")
+          .eq("boss_id", bossId);
+
+        const partIds = [...new Set((updatedParts ?? []).map((p: any) => p.character_id).filter(Boolean))];
+        let participantNames: { name: string; vocation: string }[] = [];
+
+        if (partIds.length > 0) {
+          const { data: chars } = await supabase.from("characters").select("name, vocation").in("id", partIds);
+          participantNames = (chars ?? []).map((c: any) => ({
+            name: c.name,
+            vocation: c.vocation,
+          }));
+        }
+
+        notifyBossJoined({
+          bossName: boss.name,
+          bossId: bossId,
+          messageId: boss.discord_message_id,
+          maxParticipants: boss.max_participants || 0,
+          weekday: boss.weekday,
+          spawnInterval: boss.spawn_interval,
+          isOfficial: boss.is_official,
+          participants: participantNames,
+        });
+      }
     }
 
     setJoinCharId("");
@@ -170,6 +218,9 @@ export default function BossDetailPage() {
           <div className="flex items-center gap-4 mt-2 text-sm text-muted">
             <span className="flex items-center gap-1"><Calendar size={14} />{WEEKDAYS[boss.weekday]}</span>
             <span className="flex items-center gap-1"><Clock size={14} />Spawn a cada {boss.spawn_interval} dias</span>
+            {sharedRange && (
+              <span className="flex items-center gap-1"><Shield size={14} />Shared: {sharedRange.min} – {sharedRange.max}</span>
+            )}
           </div>
           {boss.notes && <p className="text-sm text-muted mt-2">{boss.notes}</p>}
         </div>

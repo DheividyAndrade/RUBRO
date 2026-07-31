@@ -41,7 +41,7 @@ export async function POST(
       embeds: Array.isArray(body.embeds) ? body.embeds.slice(0, 10) : undefined,
     };
 
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(webhookUrl + "?wait=true", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -50,6 +50,67 @@ export async function POST(
     if (!response.ok) {
       return Response.json(
         { error: "Falha ao enviar webhook" },
+        { status: 502 }
+      );
+    }
+
+    const data = await response.json();
+    return Response.json({ ok: true, messageId: data.id });
+  } catch {
+    return Response.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ channel: string }> }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return Response.json({ error: "Não autenticado" }, { status: 401 });
+  }
+
+  const { channel } = await params;
+
+  const url = new URL(request.url);
+  const messageId = url.searchParams.get("messageId");
+
+  if (!messageId) {
+    return Response.json({ error: "messageId é obrigatório" }, { status: 400 });
+  }
+
+  const webhookUrl = WEBHOOKS[channel];
+
+  if (!webhookUrl) {
+    return Response.json({ error: "Canal inválido" }, { status: 400 });
+  }
+
+  const ALLOWED_CHANNELS = ["hunt", "boss", "event"];
+  if (!ALLOWED_CHANNELS.includes(channel)) {
+    return Response.json({ error: "Canal não permitido" }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+
+    const payload = {
+      content: body.content ? String(body.content).slice(0, 2000) : undefined,
+      embeds: Array.isArray(body.embeds) ? body.embeds.slice(0, 10) : undefined,
+    };
+
+    const editUrl = `${webhookUrl}/messages/${encodeURIComponent(messageId)}`;
+
+    const response = await fetch(editUrl, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return Response.json(
+        { error: "Falha ao editar webhook" },
         { status: 502 }
       );
     }

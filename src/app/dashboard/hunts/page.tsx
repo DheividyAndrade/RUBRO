@@ -158,7 +158,7 @@ export default function HuntsPage() {
         is_waiting: false,
       });
 
-      notifyHuntCreated({
+      const messageId = await notifyHuntCreated({
         name: formHuntName,
         huntId: newHunt.id,
         scheduledAt: scheduledAt,
@@ -169,6 +169,9 @@ export default function HuntsPage() {
         creatorLevel: char.level,
         slots: formHuntType === "solo" ? {} : formSlots,
       });
+      if (messageId) {
+        await supabase.from("hunts").update({ discord_message_id: messageId }).eq("id", newHunt.id);
+      }
     }
 
     setModalOpen(false);

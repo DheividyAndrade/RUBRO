@@ -11,7 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
-import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntJoined } from "@/lib/discord";
+import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntUpdated } from "@/lib/discord";
 import { notifyLevelMilestone } from "@/lib/discord";
 import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
@@ -23,6 +23,7 @@ interface Hunt {
   hunt_type: "solo" | "group";
   slots: Record<Vocation, number>;
   status: string;
+  discord_message_id: string | null;
   notes: string | null;
   created_by: string;
   character_id: string | null;
@@ -157,7 +158,7 @@ export default function HuntDetailPage() {
     }
 
     if (hunt && hunt.hunt_type === "group") {
-      const slots = (hunt.slots || { EK: 0, RP: 0, MS: 0, ED: 0, MK: 0 }) as Record<string, number>;
+      const slots = (hunt.slots || DEFAULT_SLOTS) as Record<string, number>;
       const filledSlots: Record<string, number> = {};
       participants.forEach((p) => {
         if (!p.is_waiting) {
@@ -166,15 +167,28 @@ export default function HuntDetailPage() {
       });
       filledSlots[char.vocation] = (filledSlots[char.vocation] ?? 0) + 1;
 
-      notifyHuntJoined({
-        huntName: hunt.name,
-        huntId: huntId,
-        characterName: char.name,
-        characterVocation: char.vocation,
-        characterLevel: char.level,
-        slots,
-        filledSlots,
-      });
+      if (hunt.discord_message_id) {
+        const creatorPart = participants.find((p) => p.user_id === hunt.created_by);
+        const pNames = participants
+          .filter((p) => !p.is_waiting && p.character)
+          .map((p) => ({ name: p.character!.name, vocation: p.character!.vocation }));
+        pNames.push({ name: char.name, vocation: char.vocation });
+
+        notifyHuntUpdated({
+          huntName: hunt.name,
+          huntId: huntId,
+          messageId: hunt.discord_message_id,
+          scheduledAt: hunt.scheduled_at,
+          endTime: hunt.end_time,
+          huntType: hunt.hunt_type,
+          creatorName: creatorPart?.character?.name ?? "Desconhecido",
+          creatorVocation: creatorPart?.character?.vocation ?? "?",
+          creatorLevel: creatorPart?.character?.level ?? 0,
+          slots,
+          filledSlots,
+          participants: pNames,
+        });
+      }
     }
 
     setJoinModalOpen(false);

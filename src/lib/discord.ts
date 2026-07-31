@@ -1,14 +1,28 @@
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://rubro-ecru.vercel.app";
 
-async function sendEmbed(channel: string, content: string, embed: any) {
+async function sendEmbed(channel: string, content: string, embed: any): Promise<string | null> {
   try {
-    await fetch(`/api/discord/${channel}`, {
+    const res = await fetch(`/api/discord/${channel}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content, embeds: [embed] }),
     });
+    const data = await res.json();
+    return data.messageId ?? null;
   } catch {
-    // silently ignore webhook errors
+    return null;
+  }
+}
+
+async function editEmbed(channel: string, messageId: string, content: string, embed: any) {
+  try {
+    await fetch(`/api/discord/${channel}?messageId=${encodeURIComponent(messageId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, embeds: [embed] }),
+    });
+  } catch {
+    // silently ignore
   }
 }
 
@@ -32,7 +46,7 @@ export async function notifyHuntCreated({
   creatorVocation: string;
   creatorLevel: number;
   slots: Record<string, number>;
-}) {
+}): Promise<string | null> {
   const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const startStr = new Date(scheduledAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const endStr = endTime ? new Date(endTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
@@ -89,7 +103,7 @@ export async function notifyHuntCreated({
     ? `Hunt solo de **${creatorName}**. Reservada apenas para o criador.`
     : `Nova hunt criada! [Clique aqui para se inscrever](${link})`;
 
-  await sendEmbed("hunt", "@everyone", {
+  return sendEmbed("hunt", "@everyone", {
     title: `${emoji} ${typeLabel}: **${name}**`,
     description: desc,
     url: link,
@@ -171,52 +185,101 @@ export async function notifyHuntCancelled({
   });
 }
 
-export async function notifyHuntJoined({
+export async function notifyHuntUpdated({
   huntName,
   huntId,
-  characterName,
-  characterVocation,
-  characterLevel,
+  messageId,
+  scheduledAt,
+  endTime,
+  huntType,
+  creatorName,
+  creatorVocation,
+  creatorLevel,
   slots,
   filledSlots,
+  participants,
 }: {
   huntName: string;
   huntId: string;
-  characterName: string;
-  characterVocation: string;
-  characterLevel: number;
+  messageId: string;
+  scheduledAt: string;
+  endTime: string | null;
+  huntType: "solo" | "group";
+  creatorName: string;
+  creatorVocation: string;
+  creatorLevel: number;
   slots: Record<string, number>;
   filledSlots: Record<string, number>;
+  participants: { name: string; vocation: string }[];
 }) {
-  const link = `${APP_URL}/dashboard/hunts/${huntId}`;
+  const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const startStr = new Date(scheduledAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const endStr = endTime ? new Date(endTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
 
-  const faltando = Object.entries(slots)
-    .filter(([voc, max]) => {
-      const filled = filledSlots[voc] ?? 0;
-      return Number(max) > filled;
-    })
-    .map(([voc, max]) => {
-      const filled = filledSlots[voc] ?? 0;
-      const falta = Number(max) - filled;
-      return `**${voc}** (falta ${falta})`;
-    })
-    .join(" · ");
+  const minLevel = Math.floor((creatorLevel * 2) / 3);
+  const maxLevel = Math.floor((creatorLevel * 3) / 2);
 
   const fields = [
-    { name: "👤 Jogador", value: `${characterName} (${characterVocation}) Level ${characterLevel}`, inline: false },
+    { name: "📅 Data", value: dateStr, inline: true },
+    { name: "⏰ Horário", value: endStr ? `${startStr} — ${endStr}` : startStr, inline: true },
+    { name: "👤 Criador", value: `${creatorName} (${creatorVocation}) Level ${creatorLevel}`, inline: true },
   ];
 
-  if (faltando) {
-    fields.push({ name: "🟡 Ainda precisa de", value: faltando, inline: false });
+  if (huntType === "group") {
+    fields.push({
+      name: "⚖️ Shared Experience",
+      value: `**${minLevel}** — **${maxLevel}**`,
+      inline: true,
+    });
+
+    const slotEntries = Object.entries(slots).filter(([, v]) => Number(v) > 0);
+    if (slotEntries.length > 0) {
+      const slotsText = slotEntries.map(([voc, max]) => {
+        const m = Number(max);
+        const filled = filledSlots[voc] ?? 0;
+        const falta = m - filled;
+        if (falta <= 0) return `**${voc}** ✅`;
+        return `**${voc}** ${filled}/${m}`;
+      }).join(" · ");
+
+      fields.push({ name: "👥 Vagas", value: slotsText, inline: false });
+
+      const faltaText = slotEntries
+        .filter(([voc, max]) => (filledSlots[voc] ?? 0) < Number(max))
+        .map(([voc, max]) => {
+          const falta = Number(max) - (filledSlots[voc] ?? 0);
+          return `**${voc}** (falta ${falta})`;
+        })
+        .join(" · ");
+
+      if (faltaText) {
+        fields.push({ name: "🟡 Ainda precisa de", value: faltaText, inline: false });
+      }
+    }
   }
 
-  await sendEmbed("hunt", "", {
-    title: `🟢 **${characterName}** entrou na PT: **${huntName}**`,
-    description: `${characterVocation} Level ${characterLevel} acabou de entrar. [Ver hunt](${link})`,
+  if (participants.length > 0) {
+    fields.push({
+      name: "👤 Participantes",
+      value: participants.map((p) => `**${p.name}** ${p.vocation}`).join("\n"),
+      inline: false,
+    });
+  }
+
+  const emoji = huntType === "solo" ? "🔒" : "⚔️";
+  const typeLabel = huntType === "solo" ? "Hunt Solo" : "PT Aberta";
+  const link = `${APP_URL}/dashboard/hunts/${huntId}`;
+  const desc = huntType === "solo"
+    ? `Hunt solo de **${creatorName}**. Reservada apenas para o criador.`
+    : `Nova hunt criada! [Clique aqui para se inscrever](${link})`;
+
+  await editEmbed("hunt", messageId, "@everyone", {
+    title: `${emoji} ${typeLabel}: **${huntName}**`,
+    description: desc,
     url: link,
     fields,
-    color: 0x16a34a,
-    footer: { text: "Rubro Guild Manager — Hunts" },
+    color: huntType === "solo" ? 0x6b7280 : 0xdc2626,
+    footer: { text: "Rubro Guild Manager" },
     timestamp: new Date().toISOString(),
   });
 }
@@ -241,6 +304,56 @@ export async function notifyEventCreated({
   leader?: string;
   minLevel?: number;
   maxParticipants?: number;
+}): Promise<string | null> {
+  const dateStr = new Date(startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const timeStr = new Date(startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  const fields = [
+    { name: "📅 Data", value: dateStr, inline: true },
+    { name: "⏰ Horário", value: timeStr, inline: true },
+  ];
+  if (location) fields.push({ name: "📍 Local", value: location, inline: true });
+  if (leader) fields.push({ name: "👤 Líder", value: leader, inline: true });
+  if (minLevel && minLevel > 0) fields.push({ name: "🛡️ Level mínimo", value: String(minLevel), inline: true });
+  if (maxParticipants && maxParticipants > 0) fields.push({ name: "👥 Vagas", value: `0/${maxParticipants}`, inline: true });
+
+  const link = `${APP_URL}/dashboard/events/${eventId}`;
+
+  return sendEmbed("event", "@everyone", {
+    title: `${categoryIcon} ${category}: **${title}**`,
+    description: `Novo evento oficial! [Clique aqui para se inscrever](${link})`,
+    url: link,
+    fields,
+    color: 0x3b82f6,
+    footer: { text: "Rubro Guild Manager — Eventos Oficiais" },
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function notifyEventUpdated({
+  eventTitle,
+  eventId,
+  messageId,
+  category,
+  categoryIcon,
+  startsAt,
+  location,
+  leader,
+  minLevel,
+  maxParticipants,
+  participants,
+}: {
+  eventTitle: string;
+  eventId: string;
+  messageId: string;
+  category: string;
+  categoryIcon: string;
+  startsAt: string;
+  location?: string;
+  leader?: string;
+  minLevel?: number;
+  maxParticipants?: number;
+  participants: { name: string; vocation: string }[];
 }) {
   const dateStr = new Date(startsAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const timeStr = new Date(startsAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -252,12 +365,22 @@ export async function notifyEventCreated({
   if (location) fields.push({ name: "📍 Local", value: location, inline: true });
   if (leader) fields.push({ name: "👤 Líder", value: leader, inline: true });
   if (minLevel && minLevel > 0) fields.push({ name: "🛡️ Level mínimo", value: String(minLevel), inline: true });
-  if (maxParticipants && maxParticipants > 0) fields.push({ name: "👥 Máx. participantes", value: String(maxParticipants), inline: true });
+  if (maxParticipants && maxParticipants > 0) {
+    fields.push({ name: "👥 Vagas", value: `${participants.length}/${maxParticipants}`, inline: true });
+  }
+
+  if (participants.length > 0) {
+    fields.push({
+      name: "👤 Participantes",
+      value: participants.map((p) => `**${p.name}** ${p.vocation}`).join("\n"),
+      inline: false,
+    });
+  }
 
   const link = `${APP_URL}/dashboard/events/${eventId}`;
 
-  await sendEmbed("event", "@everyone", {
-    title: `${categoryIcon} ${category}: **${title}**`,
+  await editEmbed("event", messageId, "@everyone", {
+    title: `${categoryIcon} ${category}: **${eventTitle}**`,
     description: `Novo evento oficial! [Clique aqui para se inscrever](${link})`,
     url: link,
     fields,
@@ -267,29 +390,51 @@ export async function notifyEventCreated({
   });
 }
 
-export async function notifyEventJoined({
-  eventTitle,
-  eventId,
-  characterName,
-  characterVocation,
-}: {
-  eventTitle: string;
-  eventId: string;
-  characterName: string;
-  characterVocation: string;
-}) {
-  const link = `${APP_URL}/dashboard/events/${eventId}`;
+const WEEKDAYS_DISCORD = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
-  await sendEmbed("event", "", {
-    title: `🟢 **${characterName}** (${characterVocation}) se inscreveu no evento`,
-    description: `**${eventTitle}**\n[Ver evento](${link})`,
-    color: 0x22c55e,
-    footer: { text: "Rubro Guild Manager — Eventos" },
+export async function notifyBossRotationCreated(bosses: { name: string; bossId: string; weekday: number; spawnInterval: number; minLevel: number; maxParticipants: number }[]): Promise<string | null> {
+  const fields = bosses.map((b) => {
+    const lvl = b.minLevel > 0 ? ` — Nível ${b.minLevel}+` : "";
+    const vagas = b.maxParticipants > 0 ? `\n👥 Vagas: 0/${b.maxParticipants}` : "";
+    return { name: `💀 ${b.name}`, value: `${WEEKDAYS_DISCORD[b.weekday] ?? String(b.weekday)} · a cada ${b.spawnInterval}d${lvl}${vagas}`, inline: false };
+  });
+
+  return sendEmbed("boss", "@everyone", {
+    title: `💀 Rotação de Bosses — ${bosses.length} bosses adicionados`,
+    description: `[Clique aqui para participar de toda a rotação](${APP_URL}/dashboard/bosses)`,
+    fields,
+    color: 0xf59e0b,
+    footer: { text: "Rubro Guild Manager — Bosses" },
     timestamp: new Date().toISOString(),
   });
 }
 
-const WEEKDAYS_DISCORD = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+export async function notifyBossRotationUpdated({
+  messageId,
+  bosses,
+}: {
+  messageId: string;
+  bosses: { name: string; bossId: string; weekday: number; spawnInterval: number; minLevel: number; maxParticipants: number; participants: { name: string; vocation: string }[] }[];
+}) {
+  const fields = bosses.map((b) => {
+    const lvl = b.minLevel > 0 ? ` — Nível ${b.minLevel}+` : "";
+    const vagas = b.maxParticipants > 0 ? `\n👥 Vagas: ${b.participants.length}/${b.maxParticipants}` : "";
+    let value = `${WEEKDAYS_DISCORD[b.weekday] ?? String(b.weekday)} · a cada ${b.spawnInterval}d${lvl}${vagas}`;
+    if (b.participants.length > 0) {
+      value += `\n👤 ${b.participants.map((p) => `**${p.name}** ${p.vocation}`).join(", ")}`;
+    }
+    return { name: `💀 ${b.name}`, value, inline: false };
+  });
+
+  await editEmbed("boss", messageId, "@everyone", {
+    title: `💀 Rotação de Bosses — ${bosses.length} bosses adicionados`,
+    description: `[Clique aqui para participar de toda a rotação](${APP_URL}/dashboard/bosses)`,
+    fields,
+    color: 0xf59e0b,
+    footer: { text: "Rubro Guild Manager — Bosses" },
+    timestamp: new Date().toISOString(),
+  });
+}
 
 export async function notifyBossCreated({
   name,
@@ -305,7 +450,7 @@ export async function notifyBossCreated({
   spawnInterval: number;
   isOfficial: boolean;
   maxParticipants?: number;
-}) {
+}): Promise<string | null> {
   const link = `${APP_URL}/dashboard/bosses/${bossId}`;
 
   const fields = [
@@ -317,7 +462,7 @@ export async function notifyBossCreated({
     fields.push({ name: "👥 Vagas", value: `0/${maxParticipants}`, inline: true });
   }
 
-  await sendEmbed("boss", "@everyone", {
+  return sendEmbed("boss", "@everyone", {
     title: `💀 Boss: **${name}**`,
     description: `Novo boss adicionado! [Clique aqui para participar](${link})`,
     url: link,
@@ -331,20 +476,45 @@ export async function notifyBossCreated({
 export async function notifyBossJoined({
   bossName,
   bossId,
-  characterName,
-  characterVocation,
+  messageId,
+  maxParticipants,
+  weekday,
+  spawnInterval,
+  isOfficial,
+  participants,
 }: {
   bossName: string;
   bossId: string;
-  characterName: string;
-  characterVocation: string;
+  messageId: string;
+  maxParticipants: number;
+  weekday: number;
+  spawnInterval: number;
+  isOfficial: boolean;
+  participants: { name: string; vocation: string }[];
 }) {
   const link = `${APP_URL}/dashboard/bosses/${bossId}`;
 
-  await sendEmbed("boss", "", {
-    title: `🟢 **${characterName}** (${characterVocation}) vai participar do boss`,
-    description: `**${bossName}**\n[Ver boss](${link})`,
-    color: 0x22c55e,
+  const fields = [
+    { name: "📅 Dia", value: WEEKDAYS_DISCORD[weekday] ?? String(weekday), inline: true },
+    { name: "⏱️ Spawn", value: `a cada ${spawnInterval} dias`, inline: true },
+    { name: "🏷️ Tipo", value: isOfficial ? "Oficial" : "Simples", inline: true },
+  ];
+
+  if (maxParticipants && maxParticipants > 0) {
+    fields.push({ name: "👥 Vagas", value: `${participants.length}/${maxParticipants}`, inline: true });
+  }
+
+  if (participants.length > 0) {
+    const list = participants.map((p) => `**${p.name}** ${p.vocation}`).join("\n");
+    fields.push({ name: "👤 Participantes", value: list, inline: false });
+  }
+
+  await editEmbed("boss", messageId, "@everyone", {
+    title: `💀 Boss: **${bossName}**`,
+    description: `Novo boss adicionado! [Clique aqui para participar](${link})`,
+    url: link,
+    fields,
+    color: isOfficial ? 0xef4444 : 0xf59e0b,
     footer: { text: "Rubro Guild Manager — Bosses" },
     timestamp: new Date().toISOString(),
   });

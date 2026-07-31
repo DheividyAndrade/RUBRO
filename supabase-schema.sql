@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public.hunts (
   max_players INTEGER NOT NULL DEFAULT 5,
   slots JSONB NOT NULL DEFAULT '{"EK":1,"RP":2,"MS":1,"ED":1}',
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'full', 'completed', 'cancelled')),
+  discord_message_id TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -145,6 +146,11 @@ CREATE TABLE IF NOT EXISTS public.bosses (
   name TEXT NOT NULL,
   weekday INTEGER DEFAULT 0,
   spawn_interval INTEGER DEFAULT 15,
+  is_official BOOLEAN DEFAULT false,
+  max_participants INTEGER DEFAULT 0,
+  min_level INTEGER DEFAULT 0,
+  discord_message_id TEXT,
+  rotation_group UUID,
   last_killed_at TIMESTAMPTZ,
   next_spawn_at TIMESTAMPTZ,
   notes TEXT,
@@ -282,6 +288,7 @@ CREATE TABLE IF NOT EXISTS public.events (
   reference_id UUID,
   starts_at TIMESTAMPTZ NOT NULL,
   ends_at TIMESTAMPTZ,
+  discord_message_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

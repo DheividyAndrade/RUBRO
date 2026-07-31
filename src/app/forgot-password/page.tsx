@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
               <CardHeader className="text-center">
                 <CardTitle>Email enviado</CardTitle>
                 <p className="text-sm text-muted mt-2">
-                  Verifique sua caixa de entrada para redefinir sua senha.
+                  Enviamos um email de <strong>"Supabase Auth"</strong>. Verifique sua caixa de entrada e a pasta de spam.
                 </p>
               </CardHeader>
               <Link href="/login">

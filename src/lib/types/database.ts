@@ -65,6 +65,7 @@ export interface Database {
           max_players: number;
           slots: Json;
           status: "open" | "full" | "completed" | "cancelled";
+          discord_message_id: string | null;
           notes: string | null;
           created_at: string;
         };
@@ -76,6 +77,7 @@ export interface Database {
           max_players?: number;
           slots?: Json;
           status?: "open" | "full" | "completed" | "cancelled";
+          discord_message_id?: string | null;
           notes?: string | null;
         };
         Update: {
@@ -85,6 +87,7 @@ export interface Database {
           max_players?: number;
           slots?: Json;
           status?: "open" | "full" | "completed" | "cancelled";
+          discord_message_id?: string | null;
           notes?: string | null;
         };
       };
@@ -120,6 +123,11 @@ export interface Database {
           name: string;
           weekday: number;
           spawn_interval: number;
+          is_official: boolean;
+          max_participants: number;
+          min_level: number;
+          discord_message_id: string | null;
+          rotation_group: string | null;
           last_killed_at: string | null;
           next_spawn_at: string | null;
           notes: string | null;
@@ -130,6 +138,10 @@ export interface Database {
           name: string;
           weekday?: number;
           spawn_interval?: number;
+          is_official?: boolean;
+          max_participants?: number;
+          min_level?: number;
+          discord_message_id?: string | null;
           last_killed_at?: string | null;
           next_spawn_at?: string | null;
           notes?: string | null;
@@ -138,6 +150,10 @@ export interface Database {
           name?: string;
           weekday?: number;
           spawn_interval?: number;
+          is_official?: boolean;
+          max_participants?: number;
+          min_level?: number;
+          discord_message_id?: string | null;
           last_killed_at?: string | null;
           next_spawn_at?: string | null;
           notes?: string | null;
@@ -223,6 +239,7 @@ export interface Database {
           reference_id: string | null;
           starts_at: string;
           ends_at: string | null;
+          discord_message_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -233,6 +250,7 @@ export interface Database {
           reference_id?: string | null;
           starts_at: string;
           ends_at?: string | null;
+          discord_message_id?: string | null;
         };
         Update: {
           title?: string;
@@ -241,6 +259,7 @@ export interface Database {
           reference_id?: string | null;
           starts_at?: string;
           ends_at?: string | null;
+          discord_message_id?: string | null;
         };
       };
       loot_history: {

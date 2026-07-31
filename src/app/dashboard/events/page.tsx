@@ -133,7 +133,7 @@ export default function EventsPage() {
       }
 
       const cat = EVENT_CATEGORIES[formCategory] ?? EVENT_CATEGORIES.event;
-      notifyEventCreated({
+      const messageId = await notifyEventCreated({
         title: formTitle,
         eventId: newEventId ?? "",
         category: cat.label,
@@ -144,6 +144,9 @@ export default function EventsPage() {
         minLevel: Number(formMinLevel) || undefined,
         maxParticipants: Number(formMaxParticipants) || undefined,
       });
+      if (messageId && newEventId) {
+        await supabase.from("events").update({ discord_message_id: messageId }).eq("id", newEventId);
+      }
     }
 
     setModalOpen(false);

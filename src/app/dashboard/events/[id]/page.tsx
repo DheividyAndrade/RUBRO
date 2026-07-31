@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { VOCATIONS, type Vocation, EVENT_CATEGORIES, type EventCategory } from "@/lib/utils";
-import { notifyEventJoined } from "@/lib/discord";
+import { notifyEventUpdated } from "@/lib/discord";
 import { ArrowLeft, Clock, MapPin, Shield, User, Check, X, AlertCircle } from "lucide-react";
 
 interface Event {
@@ -24,6 +24,7 @@ interface Event {
   starts_at: string;
   ends_at: string | null;
   created_by: string;
+  discord_message_id: string | null;
   status: string;
 }
 
@@ -128,12 +129,28 @@ export default function EventDetailPage() {
     }
 
     if (event) {
-      notifyEventJoined({
-        eventTitle: event.title,
-        eventId: eventId,
-        characterName: char.name,
-        characterVocation: char.vocation,
-      });
+      if (event.discord_message_id) {
+        const cat = EVENT_CATEGORIES[event.category] ?? EVENT_CATEGORIES.event;
+        const pNames = participants.map((p) => {
+          if (p.character) return { name: p.character.name, vocation: p.character.vocation };
+          return null;
+        }).filter(Boolean) as { name: string; vocation: string }[];
+        pNames.push({ name: char.name, vocation: char.vocation });
+
+        notifyEventUpdated({
+          eventTitle: event.title,
+          eventId: eventId,
+          messageId: event.discord_message_id,
+          category: cat.label,
+          categoryIcon: cat.icon,
+          startsAt: event.starts_at,
+          location: event.location || undefined,
+          leader: event.responsible_leader || undefined,
+          minLevel: event.min_level || undefined,
+          maxParticipants: event.max_participants || undefined,
+          participants: pNames,
+        });
+      }
     }
 
     setJoinMsg("Inscrição realizada com sucesso!");
