@@ -64,8 +64,94 @@ export default function HuntDetailPage() {
   const [lootLevel, setLootLevel] = useState("");
   const [lootError, setLootError] = useState("");
   const [savingLoot, setSavingLoot] = useState(false);
+  const [splitterMode, setSplitterMode] = useState(false);
+  const [splitterInput, setSplitterInput] = useState("");
+  const [splitterResult, setSplitterResult] = useState<{ duration: string; totalLoot: number; totalSupplies: number; profitPerPlayer: number; transfers: { from: string; to: string; amount: number }[]; players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number }[] } | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const supabase = createClient();
+
+  function parseHuntSplitter(input: string) {
+    const lines = input.split("\n");
+    let duration = "";
+    let totalLoot = 0;
+    let totalSupplies = 0;
+    const players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number }[] = [];
+    let currentPlayer: typeof players[0] | null = null;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const sessionMatch = trimmed.match(/^Session:\s*(.+)/i);
+      if (sessionMatch) { duration = sessionMatch[1].trim(); continue; }
+
+      const lootMatch = trimmed.match(/^Loot:\s*([\d,.]+)/i);
+      if (lootMatch && !currentPlayer) { totalLoot = parseNum(lootMatch[1]); continue; }
+
+      const suppliesMatch = trimmed.match(/^Supplies:\s*([\d,.]+)/i);
+      if (suppliesMatch && !currentPlayer) { totalSupplies = parseNum(suppliesMatch[1]); continue; }
+
+      const lootLine = trimmed.match(/^Loot:\s*([\d,.]+)/i);
+      const suppliesLine = trimmed.match(/^Supplies:\s*([\d,.]+)/i);
+      const balanceLine = trimmed.match(/^Balance:\s*([-\d,.]+)/i);
+      const damageLine = trimmed.match(/^Damage:\s*([\d,.]+)/i);
+      const healingLine = trimmed.match(/^Healing:\s*([\d,.]+)/i);
+
+      if (lootLine && currentPlayer) { currentPlayer.loot = parseNum(lootLine[1]); continue; }
+      if (suppliesLine && currentPlayer) { currentPlayer.supplies = parseNum(suppliesLine[1]); continue; }
+      if (balanceLine && currentPlayer) { currentPlayer.balance = parseNum(balanceLine[1]); continue; }
+      if (damageLine && currentPlayer) { currentPlayer.damage = parseNum(damageLine[1]); continue; }
+      if (healingLine && currentPlayer) { currentPlayer.healing = parseNum(healingLine[1]); continue; }
+
+      if (!trimmed.startsWith("Session") && !trimmed.startsWith("Loot Type") && !trimmed.match(/^Balance:/i) && !trimmed.match(/^Loot:/i) && !trimmed.match(/^Supplies:/i) && !trimmed.match(/^Damage:/i) && !trimmed.match(/^Healing:/i) && currentPlayer && !trimmed.startsWith("\t")) {
+        players.push(currentPlayer);
+        currentPlayer = null;
+      }
+
+      const nameMatch = trimmed.match(/^(.+?)(?:\s*\(Leader\))?$/);
+      if (nameMatch && !trimmed.match(/^(Session|Loot Type|Loot|Supplies|Balance|Damage|Healing)/i) && !trimmed.startsWith("\t") && !trimmed.startsWith("From ")) {
+        if (currentPlayer) { players.push(currentPlayer); }
+        currentPlayer = { name: nameMatch[1].trim(), loot: 0, supplies: 0, balance: 0, damage: 0, healing: 0 };
+      }
+    }
+    if (currentPlayer) { players.push(currentPlayer); }
+
+    if (players.length < 2) return null;
+
+    const totalBalance = players.reduce((s, p) => s + p.balance, 0);
+    const profitPerPlayer = Math.floor(totalBalance / players.length);
+
+    const settlements = players.map((p) => ({
+      name: p.name,
+      balance: p.balance - profitPerPlayer,
+    }));
+
+    const transfers: { from: string; to: string; amount: number }[] = [];
+    for (const payer of settlements) {
+      if (payer.balance <= 0) continue;
+      let remaining = payer.balance;
+      for (const receiver of settlements) {
+        if (receiver.balance >= 0) continue;
+        if (remaining <= 0) break;
+        const amt = Math.min(remaining, -receiver.balance);
+        if (amt > 0) {
+          transfers.push({ from: payer.name, to: receiver.name, amount: amt });
+          remaining -= amt;
+          receiver.balance += amt;
+        }
+      }
+    }
+
+    return { duration, totalLoot, totalSupplies, profitPerPlayer, transfers, players };
+  }
+
+  function parseNum(s: string) { return Number(s.replace(/[,.]/g, "")) || 0; }
+
+  function handleSplitterParse() {
+    const result = parseHuntSplitter(splitterInput);
+    setSplitterResult(result);
+  }
 
   useEffect(() => { loadHunt(); }, [huntId]);
 
@@ -208,13 +294,6 @@ export default function HuntDetailPage() {
     loadHunt();
   }
 
-  async function handleComplete() {
-    await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
-    notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
-    await loadHunt();
-    setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true);
-  }
-
   async function handleCancel() {
     await supabase.from("hunts").update({ status: "cancelled" }).eq("id", huntId);
     notifyAllHuntParticipants({ huntId, title: "Hunt cancelada", message: `${hunt?.name} foi cancelada.`, link: `/dashboard/hunts/${huntId}` });
@@ -260,13 +339,49 @@ export default function HuntDetailPage() {
         }
       }
     } else {
-      if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); setSavingLoot(false); return; }
-      splits = lootSplitIds.map((uid) => ({
-        user_id: uid,
-        amount: Number(lootAmounts[uid]) || 0,
-      }));
-      totalValue = splits.reduce((sum, s) => sum + s.amount, 0);
-      if (totalValue <= 0) { setLootError("Informe os valores para cada jogador."); setSavingLoot(false); return; }
+      if (splitterMode && splitterResult) {
+        const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const pByUser = new Map<string, string>();
+        const pNames: string[] = [];
+        for (const p of participants.filter((q) => !q.is_waiting)) {
+          const name = p.character?.name ?? "";
+          if (name) {
+            pByUser.set(normalize(name), p.user_id);
+            pNames.push(name);
+          }
+        }
+        const matched: string[] = [];
+        const unmatched: string[] = [];
+        for (const sp of splitterResult.players) {
+          const key = normalize(sp.name);
+          const uid = pByUser.get(key);
+          if (uid) {
+            splits.push({ user_id: uid, amount: splitterResult.profitPerPlayer });
+            totalValue += splitterResult.profitPerPlayer;
+            matched.push(sp.name);
+          } else {
+            unmatched.push(sp.name);
+          }
+        }
+        if (splits.length === 0) {
+          setLootError(`Jogadores na hunt: ${pNames.join(", ")} | Splitter: ${splitterResult.players.map((p) => p.name).join(", ")}`);
+          setSavingLoot(false);
+          return;
+        }
+        if (unmatched.length > 0) {
+          console.warn("Splitter: jogadores não encontrados na hunt:", unmatched.join(", "));
+        }
+      } else if (splitterMode) {
+        setLootError("Clique em Calcular Divisão antes de registrar."); setSavingLoot(false); return;
+      } else {
+        if (lootSplitIds.length === 0) { setLootError("Selecione pelo menos um jogador."); setSavingLoot(false); return; }
+        splits = lootSplitIds.map((uid) => ({
+          user_id: uid,
+          amount: Number(lootAmounts[uid]) || 0,
+        }));
+        totalValue = splits.reduce((sum, s) => sum + s.amount, 0);
+        if (totalValue <= 0) { setLootError("Informe os valores para cada jogador."); setSavingLoot(false); return; }
+      }
     }
 
     const { error } = await supabase.from("loot_history").insert({
@@ -278,6 +393,11 @@ export default function HuntDetailPage() {
 
     if (error) { setLootError(error.message); setSavingLoot(false); return; }
 
+    if (hunt.status !== "completed") {
+      await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
+      notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
+    }
+
     if (hunt) {
       const partList = participants
         .filter((p) => !p.is_waiting)
@@ -285,12 +405,12 @@ export default function HuntDetailPage() {
           name: p.character?.name ?? "?",
           vocation: p.character?.vocation ?? "?",
         }));
-      const splitList = lootSplitIds
-        .map((uid) => {
-          const p = participants.find((pt) => pt.user_id === uid);
+      const splitList = splits
+        .map((s) => {
+          const p = participants.find((pt) => pt.user_id === s.user_id);
           return {
             name: p?.character?.name ?? "?",
-            amount: Number(lootAmounts[uid]) || 0,
+            amount: s.amount,
           };
         })
         .filter((s) => s.amount > 0);
@@ -366,21 +486,18 @@ export default function HuntDetailPage() {
               Entrar na PT
             </Button>
           )}
-          {canManage && (hunt.status === "open" || hunt.status === "full") && (
-            <>
-              <Button variant="outline" size="sm" onClick={handleComplete}>Encerrar</Button>
-              <Button variant="ghost" size="sm" onClick={handleCancel}>Cancelar</Button>
-            </>
-          )}
-          {canManage && hunt.status === "completed" && (
-            <Button size="sm" onClick={() => { setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true); }}>
+          {canManage && (hunt.status === "open" || hunt.status === "full" || hunt.status === "completed") && (
+            <Button size="sm" onClick={() => { setSplitterMode(false); setShowTutorial(false); setSplitterInput(""); setSplitterResult(null); setLootError(""); setLootSplitIds([]); setLootAmounts({}); setLootLevel(""); setLootModalOpen(true); }}>
               <Coins size={14} className="mr-1" /> Registrar Loot
             </Button>
+          )}
+          {canManage && (hunt.status === "open" || hunt.status === "full") && (
+            <Button variant="ghost" size="sm" onClick={handleCancel}>Cancelar</Button>
           )}
           {canManage && (
             <Button variant="ghost" size="sm" onClick={handleDeleteHunt} title="Excluir permanentemente">
               <Trash2 size={16} className="text-red-400" />
-            </Button>
+          </Button>
           )}
         </div>
       </div>
@@ -579,7 +696,58 @@ export default function HuntDetailPage() {
             </>
           ) : (
             <>
-          <p className="text-sm text-muted">Informe quanto cada jogador vai receber:</p>
+          <div className="flex gap-2 mb-2">
+                <button onClick={() => setSplitterMode(false)} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${!splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Manual</button>
+                <button onClick={() => { setSplitterMode(true); setShowTutorial(true); }} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Hunt Splitter</button>
+              </div>
+
+              {splitterMode ? (
+                <div className="space-y-4">
+                  {showTutorial && (
+                    <div className="relative p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                      <button onClick={() => setShowTutorial(false)} className="absolute top-2 right-2 p-1 rounded hover:bg-amber-500/20 cursor-pointer">
+                        <X size={14} className="text-amber-400" />
+                      </button>
+                      <p className="text-xs text-amber-400 font-medium mb-2">Como obter os dados:</p>
+                      <img src="/party-loot.jpg" alt="Tutorial Party Loot" className="w-full rounded-lg border border-border" />
+                    </div>
+                  )}
+                  <p className="text-sm text-muted">Cole os dados da sessão (Party Loot do Tibia):</p>
+                  <textarea
+                    value={splitterInput}
+                    onChange={(e) => setSplitterInput(e.target.value)}
+                    placeholder={`Session data: From 2024-01-01, 15:00:00 to 2024-01-01, 16:00:00\nSession: 01:00h\nLoot Type: Market\nLoot: 711,112\nSupplies: 662,148\nBalance: 48,964\nPlayer 1\n\tLoot: 349,363\n\tSupplies: 98,318\n\tBalance: 251,045\nPlayer 2\n\t...`}
+                    className="w-full h-48 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  />
+                  <Button onClick={handleSplitterParse} className="w-full">Calcular Divisão</Button>
+
+                  {splitterResult && (
+                    <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
+                        <div><span className="text-muted">Profit por jogador:</span> <span className="font-medium text-success">{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Supplies Total:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
+                      </div>
+
+                      {splitterResult.transfers.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted font-medium">Transferências</p>
+                          {splitterResult.transfers.map((t, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xs p-2 rounded bg-background">
+                              <span className="font-medium">{t.from}</span>
+                              <span className="text-muted">→</span>
+                              <span className="font-medium">{t.to}</span>
+                              <span className="ml-auto text-success font-medium">{t.amount.toLocaleString("pt-BR")} gp</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+            <>
           {participants.filter((p) => !p.is_waiting).length > 0 ? (
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {participants.filter((p) => !p.is_waiting).map((p) => {
@@ -632,7 +800,7 @@ export default function HuntDetailPage() {
             </button>
           </div>
             </>
-          )}
+            )}
           {hunt?.hunt_type === "solo" ? (
             participants[0] && Number(lootAmounts[participants[0].user_id] || 0) > 0 && (
               <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
@@ -650,6 +818,8 @@ export default function HuntDetailPage() {
           <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
             {savingLoot ? "Salvando..." : hunt?.hunt_type === "solo" ? "Registrar Loot" : "Registrar Divisão"}
           </Button>
+            </>
+          )}
         </div>
       </Modal>
     </div>
