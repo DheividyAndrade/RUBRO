@@ -393,7 +393,7 @@ export default function HuntDetailPage() {
 
     if (error) { setLootError(error.message); setSavingLoot(false); return; }
 
-    if (hunt.status !== "completed") {
+    if (hunt && hunt.status !== "completed") {
       await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
       notifyAllHuntParticipants({ huntId, title: "Hunt encerrada", message: `${hunt?.name} foi concluída.`, link: `/dashboard/hunts/${huntId}` });
     }
