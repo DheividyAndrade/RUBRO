@@ -808,7 +808,7 @@ export default function HuntDetailPage() {
           )}
           {lootError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400 flex items-center gap-2"><AlertCircle size={16} />{lootError}</div>}
           <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
-            {savingLoot ? "Salvando..." : hunt?.hunt_type === "solo" ? "Registrar Loot" : "Registrar Divisão"}
+            {savingLoot ? "Salvando..." : "Registrar Divisão"}
           </Button>
             </>
           )}
