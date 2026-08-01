@@ -801,18 +801,10 @@ export default function HuntDetailPage() {
           </div>
             </>
             )}
-          {hunt?.hunt_type === "solo" ? (
-            participants[0] && Number(lootAmounts[participants[0].user_id] || 0) > 0 && (
-              <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
-                Total: {Number(lootAmounts[participants[0].user_id] || 0).toLocaleString("pt-BR")} gp
-              </div>
-            )
-          ) : (
-            lootSplitIds.length > 0 && (
-              <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
-                Total: {lootSplitIds.reduce((sum, uid) => sum + (Number(lootAmounts[uid]) || 0), 0).toLocaleString("pt-BR")} gp
-              </div>
-            )
+          {lootSplitIds.length > 0 && !splitterMode && (
+            <div className="p-2 rounded-lg bg-success/10 border border-success/30 text-sm text-success text-center">
+              Total: {lootSplitIds.reduce((sum, uid) => sum + (Number(lootAmounts[uid]) || 0), 0).toLocaleString("pt-BR")} gp
+            </div>
           )}
           {lootError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400 flex items-center gap-2"><AlertCircle size={16} />{lootError}</div>}
           <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
