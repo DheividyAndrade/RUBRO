@@ -318,10 +318,18 @@ export default function HuntDetailPage() {
     if (hunt?.hunt_type === "solo") {
       const soloParticipant = participants.find((p) => !p.is_waiting);
       if (!soloParticipant) { setLootError("Nenhum participante na hunt."); setSavingLoot(false); return; }
-      const amount = Number(lootAmounts[soloParticipant.user_id] || 0);
-      if (amount <= 0) { setLootError("Informe o valor do loot."); setSavingLoot(false); return; }
-      splits = [{ user_id: soloParticipant.user_id, amount }];
-      totalValue = amount;
+
+      if (splitterMode && splitterResult) {
+        splits = [{ user_id: soloParticipant.user_id, amount: splitterResult.profitPerPlayer }];
+        totalValue = splitterResult.profitPerPlayer;
+      } else if (splitterMode) {
+        setLootError("Clique em Calcular antes de registrar."); setSavingLoot(false); return;
+      } else {
+        const amount = Number(lootAmounts[soloParticipant.user_id] || 0);
+        if (amount <= 0) { setLootError("Informe o valor do loot."); setSavingLoot(false); return; }
+        splits = [{ user_id: soloParticipant.user_id, amount }];
+        totalValue = amount;
+      }
 
       // Update character level if provided
       const newLevel = Number(lootLevel);
@@ -662,6 +670,44 @@ export default function HuntDetailPage() {
         <div className="space-y-4">
           {hunt?.hunt_type === "solo" ? (
             <>
+          <div className="flex gap-2 mb-2">
+                <button onClick={() => setSplitterMode(false)} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${!splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Manual</button>
+                <button onClick={() => { setSplitterMode(true); setShowTutorial(true); }} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Hunt Splitter</button>
+              </div>
+
+              {splitterMode ? (
+                <div className="space-y-4">
+                  {showTutorial && (
+                    <div className="relative p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                      <button onClick={() => setShowTutorial(false)} className="absolute top-2 right-2 p-1 rounded hover:bg-amber-500/20 cursor-pointer">
+                        <X size={14} className="text-amber-400" />
+                      </button>
+                      <p className="text-xs text-amber-400 font-medium mb-2">Como obter os dados:</p>
+                      <img src="/party-loot.jpg" alt="Tutorial Party Loot" className="w-full rounded-lg border border-border" />
+                    </div>
+                  )}
+                  <p className="text-sm text-muted">Cole os dados da sessão (Party Loot do Tibia):</p>
+                  <textarea
+                    value={splitterInput}
+                    onChange={(e) => setSplitterInput(e.target.value)}
+                    placeholder={`Session data: From 2024-01-01, 15:00:00 to 2024-01-01, 16:00:00\nSession: 01:00h\nLoot Type: Market\nLoot: 711,112\nSupplies: 662,148\nBalance: 48,964\nPlayer 1\n\tLoot: 349,363\n\tSupplies: 98,318\n\tBalance: 251,045`}
+                    className="w-full h-48 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  />
+                  <Button onClick={handleSplitterParse} className="w-full">Calcular</Button>
+
+                  {splitterResult && (
+                    <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
+                        <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Supplies:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Profit:</span> <span className={`font-medium ${splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400"}`}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
               <p className="text-sm text-muted">Informe o valor total do loot:</p>
               <div className="flex items-center gap-2 p-3 rounded-lg bg-surface-hover">
                 <span className={`text-sm font-medium ${participants[0]?.character?.vocation ? VOCATIONS[participants[0].character.vocation].color : ""}`}>
@@ -693,6 +739,8 @@ export default function HuntDetailPage() {
                   className="w-28 px-2 py-1 rounded border border-border bg-background text-foreground text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary ml-auto"
                 />
               </div>
+                </>
+              )}
             </>
           ) : (
             <>
