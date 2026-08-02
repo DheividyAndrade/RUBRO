@@ -771,6 +771,10 @@ export default function HuntDetailPage() {
                   className="w-28 px-2 py-1 rounded border border-border bg-background text-foreground text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary ml-auto"
                 />
               </div>
+              {lootError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400 flex items-center gap-2"><AlertCircle size={16} />{lootError}</div>}
+              <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
+                {savingLoot ? "Salvando..." : "Registrar Loot"}
+              </Button>
                 </>
               )}
             </>
@@ -888,7 +892,7 @@ export default function HuntDetailPage() {
           )}
           {lootError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400 flex items-center gap-2"><AlertCircle size={16} />{lootError}</div>}
           <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
-            {savingLoot ? "Salvando..." : hunt?.hunt_type === "solo" ? "Registrar Loot" : "Registrar Divisão"}
+            {savingLoot ? "Salvando..." : "Registrar Divisão"}
           </Button>
             </>
           )}
