@@ -223,7 +223,57 @@ export default function HuntDetailPage() {
 
   function parseNum(s: string) { return Number(s.replace(/[,.]/g, "")) || 0; }
 
-  function handleSplitterParse() {
+  function renderSplitterResult(isGroup: boolean) {
+    if (!splitterResult) return null;
+    const type = isGroup ? "group" : "solo";
+    const fields = [
+      ["Duração:", splitterResult.duration],
+      ["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`],
+      ["Raw XP/h:", splitterResult.xpPerHour.toLocaleString("pt-BR")],
+      ["Profit:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`],
+      ["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`],
+    ];
+    if (isGroup) {
+      fields.splice(2, 1, ["Profit p/ jogador:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`], ["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`], ["Supplies Total:", `${splitterResult.totalSupplies.toLocaleString("pt-BR")} gp`]);
+      fields.splice(5, 1);
+      fields.splice(2, 1);
+    }
+    return (
+      <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {fields.map(([label, value], i) => {
+            const isSuccess = label === "Profit:" || label === "Profit p/ jogador:";
+            const isSupplies = label === "Supplies Total:";
+            const isTax = label === "Taxa Guilda (2%):";
+            return (
+              <div key={i}>
+                <span className="text-muted">{label}</span> <span className={cn("font-medium", isSuccess ? (splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400") : isSupplies ? "text-red-400" : isTax ? "text-amber-400" : "")}>{value}</span>
+              </div>
+            );
+          })}
+        </div>
+        {splitterResult.transfers.length > 0 && (
+          <div className="space-y-1 mt-2">
+            <p className="text-xs text-muted font-medium">Transferencias</p>
+            {splitterResult.transfers.map((t, i) => {
+              const isGuild = t.to === "Rubro Bank";
+              const rowBg = isGuild ? "bg-amber-500/10 border border-amber-500/20" : "bg-background";
+              const toColor = isGuild ? "font-medium text-amber-400" : "font-medium";
+              const amtColor = isGuild ? "text-amber-400" : "text-success";
+              return (
+                <div key={i} className={cn("flex items-center gap-2 text-xs p-2 rounded", rowBg)}>
+                  <span className="font-medium">{t.from}</span>
+                  <span className="text-muted">→</span>
+                  <span className={toColor}>{t.to}</span>
+                  <span className={cn("ml-auto font-medium", amtColor)}>{t.amount.toLocaleString("pt-BR")} gp</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
     const result = parseHuntSplitter(splitterInput);
     setSplitterResult(result);
   }
@@ -806,34 +856,7 @@ export default function HuntDetailPage() {
                   />
                   <Button onClick={handleSplitterParse} className="w-full">Calcular</Button>
 
-                  {splitterResult && (
-                    <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
-                        <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
-                        <div><span className="text-muted">Raw XP/h:</span> <span className="font-medium">{splitterResult.xpPerHour.toLocaleString("pt-BR")}</span></div>
-                        <div><span className="text-muted">Profit:</span> <span className={cn("font-medium", splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400")}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
-                        <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
-                      </div>
-                      {splitterResult.transfers.length > 0 && (
-                        <div className="space-y-1 mt-2">
-                          <p className="text-xs text-muted font-medium">Transferências</p>
-                          {splitterResult.transfers.map((t, i) => {
-                            const isGuild = t.to === "Rubro Bank";
-                            return (
-                            <div key={i} className={cn("flex items-center gap-2 text-xs p-2 rounded", isGuild ? "bg-amber-500/10 border border-amber-500/20" : "bg-background")}>
-                              <span className="font-medium">{t.from}</span>
-                              <span className="text-muted">→</span>
-                              <span className={isGuild ? "font-medium text-amber-400" : "font-medium"}>{t.to}</span>
-                              <span className={cn("ml-auto font-medium", isGuild ? "text-amber-400" : "text-success")}>{t.amount.toLocaleString("pt-BR")} gp</span>
-                            </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      </div>
-                    </div>
-                  )}
+                  {renderSplitterResult(false)}
                   <p className="text-sm text-muted mt-4">Qual o level atual do personagem?</p>
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-surface-hover">
                     <span className="text-sm text-muted">
@@ -917,35 +940,7 @@ export default function HuntDetailPage() {
                   />
                   <Button onClick={handleSplitterParse} className="w-full">Calcular Divisão</Button>
 
-                  {splitterResult && (
-                    <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
-                        <div><span className="text-muted">Profit por jogador:</span> <span className="font-medium text-success">{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
-                        <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
-                        <div><span className="text-muted">Supplies Total:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
-                        <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
-                      </div>
-
-                      {splitterResult.transfers.length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted font-medium">Transferências</p>
-                          {splitterResult.transfers.map((t, i) => {
-                            const isGuild = t.to === "Rubro Bank";
-                            const rowClass = isGuild ? "bg-amber-500/10 border border-amber-500/20" : "bg-background";
-                            return (
-                            <div key={i} className={cn("flex items-center gap-2 text-xs p-2 rounded", rowClass)}>
-                              <span className="font-medium">{t.from}</span>
-                              <span className="text-muted">→</span>
-                              <span className={isGuild ? "font-medium text-amber-400" : "font-medium"}>{t.to}</span>
-                              <span className={cn("ml-auto font-medium", isGuild ? "text-amber-400" : "text-success")}>{t.amount.toLocaleString("pt-BR")} gp</span>
-                            </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {renderSplitterResult(true)}
                 </div>
               ) : (
             <>
