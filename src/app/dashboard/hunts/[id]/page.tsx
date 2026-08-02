@@ -121,13 +121,15 @@ export default function HuntDetailPage() {
         continue;
       }
 
+      if (/^(Raw XP|XP|Damage\/h|Healing\/h|Killed)/i.test(trimmed)) continue;
+
       if (!trimmed.startsWith("Session") && !trimmed.startsWith("Loot Type") && !trimmed.startsWith("Raw XP") && !trimmed.startsWith("XP") && !trimmed.match(/^Balance:/i) && !trimmed.match(/^Loot:/i) && !trimmed.match(/^Supplies:/i) && !trimmed.match(/^Damage/) && !trimmed.match(/^Healing/) && currentPlayer && !trimmed.startsWith("\t")) {
         players.push(currentPlayer);
         currentPlayer = null;
       }
 
       const nameMatch = trimmed.match(/^(.+?)(?:\s*\(Leader\))?$/);
-      if (nameMatch && !trimmed.match(/^(Session|Loot Type|Loot|Supplies|Balance|Damage|Healing|Raw XP|XP)/i) && !trimmed.startsWith("\t") && !trimmed.startsWith("From ")) {
+      if (nameMatch && !trimmed.match(/^(Session|Loot Type|Loot|Supplies|Balance|Damage|Healing|Raw XP|XP|Killed)/i) && !trimmed.startsWith("\t") && !trimmed.startsWith("From ") && !trimmed.includes("/h")) {
         if (currentPlayer) { players.push(currentPlayer); }
         currentPlayer = { name: nameMatch[1].trim(), loot: 0, supplies: 0, balance: 0, damage: 0, healing: 0 };
         hasPerPlayerSection = true;
@@ -726,6 +728,12 @@ export default function HuntDetailPage() {
                         <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Supplies:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Profit:</span> <span className={`font-medium ${splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400"}`}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
+                        {splitterResult.players.length === 1 && splitterResult.players[0] && (
+                          <>
+                            <div><span className="text-muted">Damage:</span> <span className="font-medium">{splitterResult.players[0].damage.toLocaleString("pt-BR")}</span></div>
+                            <div><span className="text-muted">Healing:</span> <span className="font-medium">{splitterResult.players[0].healing.toLocaleString("pt-BR")}</span></div>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -880,10 +888,8 @@ export default function HuntDetailPage() {
           )}
           {lootError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400 flex items-center gap-2"><AlertCircle size={16} />{lootError}</div>}
           <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
-            {savingLoot ? "Salvando..." : "Registrar Divisão"}
+            {savingLoot ? "Salvando..." : hunt?.hunt_type === "solo" ? "Registrar Loot" : "Registrar Divisão"}
           </Button>
-            </>
-          )}
         </div>
       </Modal>
     </div>
