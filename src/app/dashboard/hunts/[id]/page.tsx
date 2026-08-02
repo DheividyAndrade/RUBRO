@@ -801,7 +801,7 @@ export default function HuntDetailPage() {
                   <textarea
                     value={splitterInput}
                     onChange={(e) => setSplitterInput(e.target.value)}
-                    placeholder={`Session data: From 2024-01-01, 15:00:00 to 2024-01-01, 16:00:00\nSession: 01:00h\nLoot Type: Market\nLoot: 711,112\nSupplies: 662,148\nBalance: 48,964\nPlayer 1\n\tLoot: 349,363\n\tSupplies: 98,318\n\tBalance: 251,045`}
+                    placeholder="Cole aqui os dados da sessao do Tibia (Party Loot)"
                     className="w-full h-48 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                   />
                   <Button onClick={handleSplitterParse} className="w-full">Calcular</Button>
@@ -912,7 +912,7 @@ export default function HuntDetailPage() {
                   <textarea
                     value={splitterInput}
                     onChange={(e) => setSplitterInput(e.target.value)}
-                    placeholder={`Session data: From 2024-01-01, 15:00:00 to 2024-01-01, 16:00:00\nSession: 01:00h\nLoot Type: Market\nLoot: 711,112\nSupplies: 662,148\nBalance: 48,964\nPlayer 1\n\tLoot: 349,363\n\tSupplies: 98,318\n\tBalance: 251,045\nPlayer 2\n\t...`}
+                    placeholder="Cole aqui os dados da sessao do Tibia (Party Loot)"
                     className="w-full h-48 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                   />
                   <Button onClick={handleSplitterParse} className="w-full">Calcular Divisão</Button>
