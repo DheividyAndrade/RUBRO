@@ -798,6 +798,21 @@ export default function HuntDetailPage() {
                       </div>
                     </div>
                   )}
+                  <p className="text-sm text-muted mt-4">Qual o level atual do personagem?</p>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-surface-hover">
+                    <span className="text-sm text-muted">
+                      {participants[0]?.character?.level != null
+                        ? `Level atual: ${participants[0].character.level}`
+                        : ""}
+                    </span>
+                    <input
+                      type="number"
+                      placeholder="Level"
+                      value={lootLevel}
+                      onChange={(e) => setLootLevel(e.target.value)}
+                      className="w-28 px-2 py-1 rounded border border-border bg-background text-foreground text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary ml-auto"
+                    />
+                  </div>
                 </div>
               ) : (
                 <>
