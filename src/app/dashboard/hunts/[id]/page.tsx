@@ -66,7 +66,7 @@ export default function HuntDetailPage() {
   const [savingLoot, setSavingLoot] = useState(false);
   const [splitterMode, setSplitterMode] = useState(false);
   const [splitterInput, setSplitterInput] = useState("");
-  const [splitterResult, setSplitterResult] = useState<{ duration: string; totalLoot: number; totalSupplies: number; profitPerPlayer: number; transfers: { from: string; to: string; amount: number }[]; players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number }[] } | null>(null);
+  const [splitterResult, setSplitterResult] = useState<{ duration: string; totalLoot: number; totalSupplies: number; profitPerPlayer: number; guildTax: number; transfers: { from: string; to: string; amount: number }[]; players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number; tax: number }[] } | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const supabase = createClient();
@@ -139,18 +139,34 @@ export default function HuntDetailPage() {
 
     if (players.length === 0) return null;
 
-    if (players.length === 1) {
-      const p = players[0];
-      const profit = p.balance;
-      return { duration, totalLoot: p.loot, totalSupplies: p.supplies, profitPerPlayer: profit, transfers: [], players };
+    const GUILD_TAX_RATE = 0.02;
+
+    let totalTax = 0;
+    const withTax = players.map((p) => {
+      const tax = p.balance > 0 ? Math.floor(p.balance * GUILD_TAX_RATE) : 0;
+      totalTax += tax;
+      return { ...p, tax, afterTax: p.balance - tax };
+    });
+
+    if (withTax.length === 1) {
+      const p = withTax[0];
+      return {
+        duration,
+        totalLoot: p.loot,
+        totalSupplies: p.supplies,
+        profitPerPlayer: p.afterTax,
+        transfers: [],
+        players: withTax.map((q) => ({ ...q, tax: q.tax })),
+        guildTax: totalTax,
+      };
     }
 
-    const totalBalance = players.reduce((s, p) => s + p.balance, 0);
-    const profitPerPlayer = Math.floor(totalBalance / players.length);
+    const totalAfterTax = withTax.reduce((s, p) => s + p.afterTax, 0);
+    const profitPerPlayer = Math.floor(totalAfterTax / withTax.length);
 
-    const settlements = players.map((p) => ({
+    const settlements = withTax.map((p) => ({
       name: p.name,
-      balance: p.balance - profitPerPlayer,
+      balance: p.afterTax - profitPerPlayer,
     }));
 
     const transfers: { from: string; to: string; amount: number }[] = [];
@@ -169,7 +185,15 @@ export default function HuntDetailPage() {
       }
     }
 
-    return { duration, totalLoot, totalSupplies, profitPerPlayer, transfers, players };
+    return {
+      duration,
+      totalLoot,
+      totalSupplies,
+      profitPerPlayer,
+      transfers,
+      players: withTax.map((q) => ({ name: q.name, loot: q.loot, supplies: q.supplies, balance: q.balance, damage: q.damage, healing: q.healing, tax: q.tax })),
+      guildTax: totalTax,
+    };
   }
 
   function parseNum(s: string) { return Number(s.replace(/[,.]/g, "")) || 0; }
@@ -458,6 +482,14 @@ export default function HuntDetailPage() {
           }))
         : undefined;
 
+      const taxPerPlayer = splitterResult
+        ? splitterResult.players
+            .filter((p) => p.tax > 0)
+            .map((p) => ({ name: p.name, amount: p.tax }))
+        : undefined;
+
+      const guildTax = splitterResult?.guildTax || 0;
+
       notifyHuntCompleted({
         name: hunt.name,
         huntId: huntId,
@@ -469,6 +501,8 @@ export default function HuntDetailPage() {
           newLevel: Number(lootLevel) || 0,
         } : undefined,
         playerStats,
+        guildTax: guildTax > 0 ? guildTax : undefined,
+        taxPerPlayer: taxPerPlayer && taxPerPlayer.length > 0 ? taxPerPlayer : undefined,
       });
     }
 
@@ -739,6 +773,7 @@ export default function HuntDetailPage() {
                         <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Supplies:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Profit:</span> <span className={`font-medium ${splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400"}`}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
                         {splitterResult.players.length === 1 && splitterResult.players[0] && (
                           <>
                             <div><span className="text-muted">Damage:</span> <span className="font-medium">{splitterResult.players[0].damage.toLocaleString("pt-BR")}</span></div>
@@ -823,6 +858,7 @@ export default function HuntDetailPage() {
                         <div><span className="text-muted">Profit por jogador:</span> <span className="font-medium text-success">{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Supplies Total:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
                       </div>
 
                       {splitterResult.transfers.length > 0 && (
