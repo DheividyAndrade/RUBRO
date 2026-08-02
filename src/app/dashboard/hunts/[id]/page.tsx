@@ -78,6 +78,7 @@ export default function HuntDetailPage() {
     let totalSupplies = 0;
     const players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number }[] = [];
     let currentPlayer: typeof players[0] | null = null;
+    let hasPerPlayerSection = false;
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -104,20 +105,43 @@ export default function HuntDetailPage() {
       if (damageLine && currentPlayer) { currentPlayer.damage = parseNum(damageLine[1]); continue; }
       if (healingLine && currentPlayer) { currentPlayer.healing = parseNum(healingLine[1]); continue; }
 
-      if (!trimmed.startsWith("Session") && !trimmed.startsWith("Loot Type") && !trimmed.match(/^Balance:/i) && !trimmed.match(/^Loot:/i) && !trimmed.match(/^Supplies:/i) && !trimmed.match(/^Damage:/i) && !trimmed.match(/^Healing:/i) && currentPlayer && !trimmed.startsWith("\t")) {
+      if (balanceLine && !currentPlayer && !hasPerPlayerSection) {
+        players.push({ name: "", loot: totalLoot, supplies: totalSupplies, balance: parseNum(balanceLine[1]), damage: 0, healing: 0 });
+        currentPlayer = null;
+        continue;
+      }
+
+      if (damageLine && !currentPlayer && !hasPerPlayerSection && players.length > 0) {
+        players[0].damage = parseNum(damageLine[1]);
+        continue;
+      }
+
+      if (healingLine && !currentPlayer && !hasPerPlayerSection && players.length > 0) {
+        players[0].healing = parseNum(healingLine[1]);
+        continue;
+      }
+
+      if (!trimmed.startsWith("Session") && !trimmed.startsWith("Loot Type") && !trimmed.startsWith("Raw XP") && !trimmed.startsWith("XP") && !trimmed.match(/^Balance:/i) && !trimmed.match(/^Loot:/i) && !trimmed.match(/^Supplies:/i) && !trimmed.match(/^Damage/) && !trimmed.match(/^Healing/) && currentPlayer && !trimmed.startsWith("\t")) {
         players.push(currentPlayer);
         currentPlayer = null;
       }
 
       const nameMatch = trimmed.match(/^(.+?)(?:\s*\(Leader\))?$/);
-      if (nameMatch && !trimmed.match(/^(Session|Loot Type|Loot|Supplies|Balance|Damage|Healing)/i) && !trimmed.startsWith("\t") && !trimmed.startsWith("From ")) {
+      if (nameMatch && !trimmed.match(/^(Session|Loot Type|Loot|Supplies|Balance|Damage|Healing|Raw XP|XP)/i) && !trimmed.startsWith("\t") && !trimmed.startsWith("From ")) {
         if (currentPlayer) { players.push(currentPlayer); }
         currentPlayer = { name: nameMatch[1].trim(), loot: 0, supplies: 0, balance: 0, damage: 0, healing: 0 };
+        hasPerPlayerSection = true;
       }
     }
     if (currentPlayer) { players.push(currentPlayer); }
 
-    if (players.length < 2) return null;
+    if (players.length === 0) return null;
+
+    if (players.length === 1) {
+      const p = players[0];
+      const profit = p.balance;
+      return { duration, totalLoot: p.loot, totalSupplies: p.supplies, profitPerPlayer: profit, transfers: [], players };
+    }
 
     const totalBalance = players.reduce((s, p) => s + p.balance, 0);
     const profitPerPlayer = Math.floor(totalBalance / players.length);
