@@ -890,6 +890,8 @@ export default function HuntDetailPage() {
           <Button onClick={handleSaveLoot} className="w-full" disabled={savingLoot}>
             {savingLoot ? "Salvando..." : hunt?.hunt_type === "solo" ? "Registrar Loot" : "Registrar Divisão"}
           </Button>
+            </>
+          )}
         </div>
       </Modal>
     </div>
