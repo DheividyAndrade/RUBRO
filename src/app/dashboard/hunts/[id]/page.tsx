@@ -154,14 +154,16 @@ export default function HuntDetailPage() {
 
     if (withTax.length === 1) {
       const p = withTax[0];
+      const soloTax = p.balance > 0 ? Math.floor(p.balance * GUILD_TAX_RATE) : 0;
+      const soloTransfers = soloTax > 0 ? [{ from: p.name, to: "Rubro Bank", amount: soloTax }] : [];
       return {
         duration,
         totalLoot: p.loot,
         totalSupplies: p.supplies,
-        profitPerPlayer: p.afterTax,
-        transfers: [],
-        players: withTax.map((q) => ({ ...q, tax: q.tax })),
-        guildTax: totalTax,
+        profitPerPlayer: p.balance - soloTax,
+        transfers: soloTransfers,
+        players: [{ ...p, tax: soloTax }],
+        guildTax: soloTax,
         xpPerHour,
       };
     }
@@ -197,6 +199,9 @@ export default function HuntDetailPage() {
       if (payers[pi].amount <= 0) pi++;
       if (receivers[ri].amount <= 0) ri++;
     }
+
+    const guildPayer = entries.reduce((a, b) => a.diff < b.diff ? a : b);
+    if (guildTax > 0) transfers.push({ from: guildPayer.name, to: "Rubro Bank", amount: guildTax });
 
     const playerResults = players.map((p) => {
       const taxShare = Math.floor(guildTax / players.length);
@@ -808,6 +813,20 @@ export default function HuntDetailPage() {
                         <div><span className="text-muted">Raw XP/h:</span> <span className="font-medium">{splitterResult.xpPerHour.toLocaleString("pt-BR")}</span></div>
                         <div><span className="text-muted">Profit:</span> <span className={`font-medium ${splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400"}`}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
+                      </div>
+                      {splitterResult.transfers.length > 0 && (
+                        <div className="space-y-1 mt-2">
+                          <p className="text-xs text-muted font-medium">Transferências</p>
+                          {splitterResult.transfers.map((t, i) => (
+                            <div key={i} className={`flex items-center gap-2 text-xs p-2 rounded ${t.to === "Rubro Bank" ? "bg-amber-500/10 border border-amber-500/20" : "bg-background"}`}>
+                              <span className="font-medium">{t.from}</span>
+                              <span className="text-muted">→</span>
+                              <span className={`font-medium ${t.to === "Rubro Bank" ? "text-amber-400" : ""}`}>{t.to}</span>
+                              <span className={`ml-auto font-medium ${t.to === "Rubro Bank" ? "text-amber-400" : "text-success"}`}>{t.amount.toLocaleString("pt-BR")} gp</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       </div>
                     </div>
                   )}
