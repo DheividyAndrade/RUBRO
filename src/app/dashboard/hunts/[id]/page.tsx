@@ -274,6 +274,8 @@ export default function HuntDetailPage() {
       </div>
     );
   }
+
+  function handleSplitterParse() {
     const result = parseHuntSplitter(splitterInput);
     setSplitterResult(result);
   }
