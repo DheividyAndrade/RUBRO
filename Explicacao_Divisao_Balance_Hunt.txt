@@ -1,0 +1,40 @@
+EXPLICAÇÃO DA DIVISÃO DO BALANCE DA HUNT
+
+Dados da Hunt
+
+Loot Total: 1.478.885 Supplies Totais: 856.085 Balance Total: 622.800
+
+Jogadores: - Rubro Coyote Supply: 301.557
+
+-   Ribeiro Gurias Supply: 554.528
+
+PASSO 1 - Dividir o Loot
+
+Loot por jogador = Loot Total / Número de Jogadores
+
+1.478.885 / 2 = 739.442,50
+
+PASSO 2 - Calcular o lucro de cada jogador
+
+Rubro Coyote: 739.442,50 - 301.557 = 437.885,50
+
+Ribeiro Gurias: 739.442,50 - 554.528 = 184.914,50
+
+Conferência: 437.885,50 + 184.914,50 = 622.800
+
+TRANSFERÊNCIA
+
+Como Rubro ficou com todo o loot, ele deve transferir:
+
+739.442,50 - 554.528 = 184.914,50 gold
+
+FÓRMULA GERAL
+
+1)  Loot por jogador Loot Total / Quantidade de jogadores
+
+2)  Lucro individual Loot por jogador - Supply individual
+
+3)  Quando apenas um jogador fica com todo o loot Pagamento = Loot por
+    jogador - Supply do outro jogador
+
+Assim, todos terminam com o lucro correto da hunt.
