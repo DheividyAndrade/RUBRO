@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
 import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntUpdated } from "@/lib/discord";
 import { notifyLevelMilestone } from "@/lib/discord";
@@ -817,14 +818,17 @@ export default function HuntDetailPage() {
                       {splitterResult.transfers.length > 0 && (
                         <div className="space-y-1 mt-2">
                           <p className="text-xs text-muted font-medium">Transferências</p>
-                          {splitterResult.transfers.map((t, i) => (
-                            <div key={i} className={`flex items-center gap-2 text-xs p-2 rounded ${t.to === "Rubro Bank" ? "bg-amber-500/10 border border-amber-500/20" : "bg-background"}`}>
+                          {splitterResult.transfers.map((t, i) => {
+                            const isGuild = t.to === "Rubro Bank";
+                            return (
+                            <div key={i} className={cn("flex items-center gap-2 text-xs p-2 rounded", isGuild ? "bg-amber-500/10 border border-amber-500/20" : "bg-background")}>
                               <span className="font-medium">{t.from}</span>
                               <span className="text-muted">→</span>
-                              <span className={`font-medium ${t.to === "Rubro Bank" ? "text-amber-400" : ""}`}>{t.to}</span>
-                              <span className={`ml-auto font-medium ${t.to === "Rubro Bank" ? "text-amber-400" : "text-success"}`}>{t.amount.toLocaleString("pt-BR")} gp</span>
+                              <span className={isGuild ? "font-medium text-amber-400" : "font-medium"}>{t.to}</span>
+                              <span className={cn("ml-auto font-medium", isGuild ? "text-amber-400" : "text-success")}>{t.amount.toLocaleString("pt-BR")} gp</span>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                       </div>
@@ -926,14 +930,18 @@ export default function HuntDetailPage() {
                       {splitterResult.transfers.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-xs text-muted font-medium">Transferências</p>
-                          {splitterResult.transfers.map((t, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs p-2 rounded bg-background">
+                          {splitterResult.transfers.map((t, i) => {
+                            const isGuild = t.to === "Rubro Bank";
+                            const rowClass = isGuild ? "bg-amber-500/10 border border-amber-500/20" : "bg-background";
+                            return (
+                            <div key={i} className={cn("flex items-center gap-2 text-xs p-2 rounded", rowClass)}>
                               <span className="font-medium">{t.from}</span>
                               <span className="text-muted">→</span>
-                              <span className="font-medium">{t.to}</span>
-                              <span className="ml-auto text-success font-medium">{t.amount.toLocaleString("pt-BR")} gp</span>
+                              <span className={isGuild ? "font-medium text-amber-400" : "font-medium"}>{t.to}</span>
+                              <span className={cn("ml-auto font-medium", isGuild ? "text-amber-400" : "text-success")}>{t.amount.toLocaleString("pt-BR")} gp</span>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
