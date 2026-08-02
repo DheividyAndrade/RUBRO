@@ -1,15 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { createClient } from "@/lib/supabase/client";
+
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 
 export function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
+  const router = useRouter();
 
   const isCollapsed = pinned ? false : collapsed;
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const logout = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }, [router]);
+
+  const resetTimer = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(logout, INACTIVITY_TIMEOUT);
+  }, [logout]);
+
+  useEffect(() => {
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    events.forEach((e) => window.addEventListener(e, resetTimer));
+    resetTimer();
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, [resetTimer]);
 
   return (
     <div className="min-h-screen bg-background">
