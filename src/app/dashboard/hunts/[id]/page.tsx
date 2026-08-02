@@ -782,7 +782,6 @@ export default function HuntDetailPage() {
                         <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
                       </div>
                     </div>
-                    </div>
                   )}
                 </div>
               ) : (
