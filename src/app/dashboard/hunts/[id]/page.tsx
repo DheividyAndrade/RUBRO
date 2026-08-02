@@ -66,7 +66,7 @@ export default function HuntDetailPage() {
   const [savingLoot, setSavingLoot] = useState(false);
   const [splitterMode, setSplitterMode] = useState(false);
   const [splitterInput, setSplitterInput] = useState("");
-  const [splitterResult, setSplitterResult] = useState<{ duration: string; totalLoot: number; totalSupplies: number; profitPerPlayer: number; guildTax: number; transfers: { from: string; to: string; amount: number }[]; players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number; tax: number }[] } | null>(null);
+  const [splitterResult, setSplitterResult] = useState<{ duration: string; totalLoot: number; totalSupplies: number; profitPerPlayer: number; guildTax: number; xpPerHour: number; transfers: { from: string; to: string; amount: number }[]; players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number; tax: number }[] } | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const supabase = createClient();
@@ -76,6 +76,7 @@ export default function HuntDetailPage() {
     let duration = "";
     let totalLoot = 0;
     let totalSupplies = 0;
+    let xpPerHour = 0;
     const players: { name: string; loot: number; supplies: number; balance: number; damage: number; healing: number }[] = [];
     let currentPlayer: typeof players[0] | null = null;
     let hasPerPlayerSection = false;
@@ -92,6 +93,9 @@ export default function HuntDetailPage() {
 
       const suppliesMatch = trimmed.match(/^Supplies:\s*([\d,.]+)/i);
       if (suppliesMatch && !currentPlayer) { totalSupplies = parseNum(suppliesMatch[1]); continue; }
+
+      const xpMatch = trimmed.match(/^Raw XP\/h:\s*([\d,.]+)/i);
+      if (xpMatch && !currentPlayer) { xpPerHour = parseNum(xpMatch[1]); continue; }
 
       const lootLine = trimmed.match(/^Loot:\s*([\d,.]+)/i);
       const suppliesLine = trimmed.match(/^Supplies:\s*([\d,.]+)/i);
@@ -158,6 +162,7 @@ export default function HuntDetailPage() {
         transfers: [],
         players: withTax.map((q) => ({ ...q, tax: q.tax })),
         guildTax: totalTax,
+        xpPerHour,
       };
     }
 
@@ -193,6 +198,7 @@ export default function HuntDetailPage() {
       transfers,
       players: withTax.map((q) => ({ name: q.name, loot: q.loot, supplies: q.supplies, balance: q.balance, damage: q.damage, healing: q.healing, tax: q.tax })),
       guildTax: totalTax,
+      xpPerHour,
     };
   }
 
@@ -766,21 +772,16 @@ export default function HuntDetailPage() {
                   />
                   <Button onClick={handleSplitterParse} className="w-full">Calcular</Button>
 
-                  {splitterResult && (
+                  {splitterResult && splitterResult.players.length === 1 ? (
                     <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
                         <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
-                        <div><span className="text-muted">Supplies:</span> <span className="font-medium text-red-400">{splitterResult.totalSupplies.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Raw XP/h:</span> <span className="font-medium">{splitterResult.xpPerHour.toLocaleString("pt-BR")}</span></div>
                         <div><span className="text-muted">Profit:</span> <span className={`font-medium ${splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400"}`}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
-                        {splitterResult.players.length === 1 && splitterResult.players[0] && (
-                          <>
-                            <div><span className="text-muted">Damage:</span> <span className="font-medium">{splitterResult.players[0].damage.toLocaleString("pt-BR")}</span></div>
-                            <div><span className="text-muted">Healing:</span> <span className="font-medium">{splitterResult.players[0].healing.toLocaleString("pt-BR")}</span></div>
-                          </>
-                        )}
                       </div>
+                    </div>
                     </div>
                   )}
                 </div>
