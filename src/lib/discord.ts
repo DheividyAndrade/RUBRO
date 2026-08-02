@@ -121,6 +121,7 @@ export async function notifyHuntCompleted({
   lootTotal,
   lootSplits,
   levelChange,
+  playerStats,
 }: {
   name: string;
   huntId: string;
@@ -128,6 +129,7 @@ export async function notifyHuntCompleted({
   lootTotal?: number;
   lootSplits?: { name: string; amount: number }[];
   levelChange?: { oldLevel: number; newLevel: number };
+  playerStats?: { name: string; damage: number; healing: number; loot: number; supplies: number }[];
 }) {
   const fields = [];
 
@@ -157,6 +159,13 @@ export async function notifyHuntCompleted({
       .map((s) => `**${s.name}**: ${s.amount.toLocaleString("pt-BR")} gp`)
       .join("\n");
     fields.push({ name: "💸 Divisão", value: splitStr, inline: false });
+  }
+
+  if (playerStats && playerStats.length > 0) {
+    const statsStr = playerStats
+      .map((s) => `**${s.name}** — ⚔ ${s.damage.toLocaleString("pt-BR")} · 💚 ${s.healing.toLocaleString("pt-BR")} · 💰 ${s.loot.toLocaleString("pt-BR")} · 🧪 ${s.supplies.toLocaleString("pt-BR")}`)
+      .join("\n");
+    fields.push({ name: "📋 Detalhes", value: statsStr, inline: false });
   }
 
   await sendEmbed("hunt", "", {

@@ -448,6 +448,16 @@ export default function HuntDetailPage() {
           };
         })
         .filter((s) => s.amount > 0);
+      const playerStats = splitterResult
+        ? splitterResult.players.map((sp) => ({
+            name: sp.name,
+            damage: sp.damage,
+            healing: sp.healing,
+            loot: sp.loot,
+            supplies: sp.supplies,
+          }))
+        : undefined;
+
       notifyHuntCompleted({
         name: hunt.name,
         huntId: huntId,
@@ -458,6 +468,7 @@ export default function HuntDetailPage() {
           oldLevel: participants[0]?.character?.level ?? 0,
           newLevel: Number(lootLevel) || 0,
         } : undefined,
+        playerStats,
       });
     }
 
