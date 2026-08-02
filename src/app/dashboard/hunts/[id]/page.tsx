@@ -766,7 +766,7 @@ export default function HuntDetailPage() {
                 options={[{ value: "", label: "Selecione..." }, ...myChars.map((c) => ({ value: c.id, label: `${c.name} (${VOCATIONS[c.vocation].short}) Level ${c.level}` }))]}
               />
               {joinValidation && (
-                <div className={`p-3 rounded-lg text-sm ${joinValidation.ok ? "bg-success/10 border border-success/30 text-success" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}>
+                <div className={cn("p-3 rounded-lg text-sm", joinValidation.ok ? "bg-success/10 border border-success/30 text-success" : "bg-red-500/10 border border-red-500/30 text-red-400")}>
                   <div className="flex items-center gap-2">{joinValidation.ok ? <Check size={16} /> : <AlertCircle size={16} />}{joinValidation.msg}</div>
                 </div>
               )}
@@ -782,8 +782,8 @@ export default function HuntDetailPage() {
           {hunt?.hunt_type === "solo" ? (
             <>
           <div className="flex gap-2 mb-2">
-                <button onClick={() => setSplitterMode(false)} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${!splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Manual</button>
-                <button onClick={() => { setSplitterMode(true); setShowTutorial(true); }} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Hunt Splitter</button>
+                <button onClick={() => setSplitterMode(false)} className={cn("flex-1 py-1.5 text-sm rounded-md cursor-pointer", !splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground")}>Manual</button>
+                <button onClick={() => { setSplitterMode(true); setShowTutorial(true); }} className={cn("flex-1 py-1.5 text-sm rounded-md cursor-pointer", splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground")}>Hunt Splitter</button>
               </div>
 
               {splitterMode ? (
@@ -812,7 +812,7 @@ export default function HuntDetailPage() {
                         <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
                         <div><span className="text-muted">Loot Total:</span> <span className="font-medium">{splitterResult.totalLoot.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Raw XP/h:</span> <span className="font-medium">{splitterResult.xpPerHour.toLocaleString("pt-BR")}</span></div>
-                        <div><span className="text-muted">Profit:</span> <span className={`font-medium ${splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400"}`}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
+                        <div><span className="text-muted">Profit:</span> <span className={cn("font-medium", splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400")}>{splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp</span></div>
                         <div><span className="text-muted">Taxa Guilda (2%):</span> <span className="font-medium text-amber-400">{splitterResult.guildTax.toLocaleString("pt-BR")} gp</span></div>
                       </div>
                       {splitterResult.transfers.length > 0 && (
@@ -893,8 +893,8 @@ export default function HuntDetailPage() {
           ) : (
             <>
           <div className="flex gap-2 mb-2">
-                <button onClick={() => setSplitterMode(false)} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${!splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Manual</button>
-                <button onClick={() => { setSplitterMode(true); setShowTutorial(true); }} className={`flex-1 py-1.5 text-sm rounded-md cursor-pointer ${splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground"}`}>Hunt Splitter</button>
+                <button onClick={() => setSplitterMode(false)} className={cn("flex-1 py-1.5 text-sm rounded-md cursor-pointer", !splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground")}>Manual</button>
+                <button onClick={() => { setSplitterMode(true); setShowTutorial(true); }} className={cn("flex-1 py-1.5 text-sm rounded-md cursor-pointer", splitterMode ? "bg-primary text-primary-foreground" : "border border-border hover:bg-surface-hover text-foreground")}>Hunt Splitter</button>
               </div>
 
               {splitterMode ? (
