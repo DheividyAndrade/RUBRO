@@ -772,7 +772,7 @@ export default function HuntDetailPage() {
                   />
                   <Button onClick={handleSplitterParse} className="w-full">Calcular</Button>
 
-                  {splitterResult && splitterResult.players.length === 1 ? (
+                  {splitterResult && splitterResult.players.length === 1 && (
                     <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div><span className="text-muted">Duração:</span> <span className="font-medium">{splitterResult.duration}</span></div>
