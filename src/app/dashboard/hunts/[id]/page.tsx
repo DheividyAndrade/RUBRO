@@ -499,7 +499,8 @@ export default function HuntDetailPage() {
           }
         }
         if (splits.length === 0) {
-          setLootError(`Jogadores na hunt: ${pNames.join(", ")} | Splitter: ${splitterResult.players.map((p) => p.name).join(", ")}`);
+          const splitterNames = splitterResult.players.map((p) => p.name || "(solo)").join(", ");
+          setLootError(`Jogadores na hunt: ${pNames.join(", ")} | Splitter: ${splitterNames}`);
           setSavingLoot(false);
           return;
         }
