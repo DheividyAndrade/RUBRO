@@ -30,7 +30,7 @@ export default function HistoryPage() {
         .from("hunts")
         .select("id, name, scheduled_at, created_at, status, end_time")
         .in("status", ["completed", "cancelled"])
-        .order("scheduled_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(30),
       supabase
         .from("bosses")
