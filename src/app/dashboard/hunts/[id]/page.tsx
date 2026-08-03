@@ -169,18 +169,19 @@ export default function HuntDetailPage() {
       };
     }
 
+    const activePlayers = players.filter((p) => p.name);
     const guildTax = Math.floor(totalLoot * GUILD_TAX_RATE);
     const netLoot = totalLoot - guildTax;
     const totalBalance = netLoot - totalSupplies;
-    const profitPerPlayer = Math.floor(totalBalance / players.length);
+    const profitPerPlayer = Math.floor(totalBalance / activePlayers.length);
 
     const entries: { name: string; supplies: number; loot: number; diff: number }[] = [];
     let taxRemainder = guildTax;
-    for (let i = 0; i < players.length; i++) {
-      const p = players[i];
-      const taxShare = i === players.length - 1
+    for (let i = 0; i < activePlayers.length; i++) {
+      const p = activePlayers[i];
+      const taxShare = i === activePlayers.length - 1
         ? taxRemainder
-        : Math.floor(guildTax / players.length);
+        : Math.floor(guildTax / activePlayers.length);
       taxRemainder -= taxShare;
       const target = p.supplies + profitPerPlayer;
       const current = p.loot - taxShare;
@@ -204,8 +205,8 @@ export default function HuntDetailPage() {
     const guildPayer = entries.reduce((a, b) => a.diff < b.diff ? a : b);
     if (guildTax > 0) transfers.push({ from: guildPayer.name, to: "Rubro Bank", amount: guildTax });
 
-    const playerResults = players.map((p) => {
-      const taxShare = Math.floor(guildTax / players.length);
+    const playerResults = players.filter((p) => p.name).map((p) => {
+      const taxShare = Math.floor(guildTax / players.filter((q) => q.name).length);
       return { ...p, tax: taxShare };
     });
 
@@ -225,18 +226,18 @@ export default function HuntDetailPage() {
 
   function renderSplitterResult(isGroup: boolean) {
     if (!splitterResult) return null;
-    const type = isGroup ? "group" : "solo";
-    const fields = [
-      ["Duração:", splitterResult.duration],
-      ["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`],
-      ["Raw XP/h:", splitterResult.xpPerHour.toLocaleString("pt-BR")],
-      ["Profit:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`],
-      ["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`],
-    ];
+    const fields: string[][] = [];
+    fields.push(["Duração:", splitterResult.duration]);
     if (isGroup) {
-      fields.splice(2, 1, ["Profit p/ jogador:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`], ["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`], ["Supplies Total:", `${splitterResult.totalSupplies.toLocaleString("pt-BR")} gp`]);
-      fields.splice(5, 1);
-      fields.splice(2, 1);
+      fields.push(["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`]);
+      fields.push(["Supplies Total:", `${splitterResult.totalSupplies.toLocaleString("pt-BR")} gp`]);
+      fields.push(["Profit p/ jogador:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`]);
+      fields.push(["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`]);
+    } else {
+      fields.push(["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`]);
+      fields.push(["Raw XP/h:", splitterResult.xpPerHour.toLocaleString("pt-BR")]);
+      fields.push(["Profit:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`]);
+      fields.push(["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`]);
     }
     return (
       <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
