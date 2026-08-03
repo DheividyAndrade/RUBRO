@@ -28,7 +28,7 @@ export default function HistoryPage() {
     ] = await Promise.all([
       supabase
         .from("hunts")
-        .select("id, name, scheduled_at, created_at, status, hunt_type, end_time")
+        .select("id, name, scheduled_at, created_at, status, end_time")
         .in("status", ["completed", "cancelled"])
         .order("scheduled_at", { ascending: false })
         .limit(30),
