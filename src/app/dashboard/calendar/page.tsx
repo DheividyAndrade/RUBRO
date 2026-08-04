@@ -15,8 +15,9 @@ interface CalendarEvent {
   category: string;
   reference_id: string | null;
   starts_at: string;
-  source: "event" | "hunt" | "boss";
+  source: "event" | "hunt" | "boss" | "task";
   hunt_status?: string;
+  location?: string;
 }
 
 export default function CalendarPage() {
@@ -32,7 +33,8 @@ export default function CalendarPage() {
       supabase.from("events").select("id,title,category,event_type,reference_id,starts_at").gte("starts_at", start.toISOString()).lte("starts_at", end.toISOString()).order("starts_at"),
       supabase.from("hunts").select("id,name,scheduled_at,status,hunt_type").gte("scheduled_at", start.toISOString()).lte("scheduled_at", end.toISOString()).order("scheduled_at"),
       supabase.from("bosses").select("id,name,weekday"),
-    ]).then(([{ data: eventsData }, { data: huntsData }, { data: bossesData }]) => {
+      supabase.from("tasks").select("id,creature,location,scheduled_at,status,hunt_type").gte("scheduled_at", start.toISOString()).lte("scheduled_at", end.toISOString()).order("scheduled_at"),
+    ]).then(([{ data: eventsData }, { data: huntsData }, { data: bossesData }, { data: tasksData }]) => {
       const mappedEvents: CalendarEvent[] = (eventsData ?? []).map((e: any) => ({
         ...e,
         title: e.title,
@@ -54,7 +56,19 @@ export default function CalendarPage() {
         hunt_status: h.status,
       }));
 
-      setEvents([...mappedEvents, ...mappedHunts]);
+      const mappedTasks: CalendarEvent[] = (tasksData ?? []).map((t: any) => ({
+        id: t.id,
+        title: t.creature,
+        event_type: "task",
+        category: "task",
+        source: "task" as const,
+        reference_id: t.id,
+        starts_at: t.scheduled_at,
+        location: t.location,
+        hunt_status: t.status,
+      }));
+
+      setEvents([...mappedEvents, ...mappedHunts, ...mappedTasks]);
     });
   }, [currentDate, supabase]);
 
@@ -66,6 +80,7 @@ export default function CalendarPage() {
   function getColor(item: CalendarEvent) {
     if (item.source === "hunt") return "bg-green-500/20 text-green-400";
     if (item.source === "boss") return "bg-yellow-500/20 text-yellow-400";
+    if (item.source === "task") return "bg-purple-500/20 text-purple-400";
     const c = EVENT_CATEGORIES[item.category as EventCategory];
     if (!c) return "bg-primary/20 text-primary";
     return c.color.includes("blue") ? "bg-blue-500/20 text-blue-400" :
@@ -81,6 +96,7 @@ export default function CalendarPage() {
   function getLink(item: CalendarEvent) {
     if (item.source === "hunt") return `/dashboard/hunts/${item.id}`;
     if (item.source === "boss") return `/dashboard/bosses/${item.id}`;
+    if (item.source === "task") return `/dashboard/tasks/${item.id}`;
     if (item.event_type === "hunt") return `/dashboard/hunts/${item.reference_id}`;
     return `/dashboard/events/${item.id}`;
   }
@@ -88,6 +104,7 @@ export default function CalendarPage() {
   function getBadge(item: CalendarEvent) {
     if (item.source === "hunt") return "Hunt";
     if (item.source === "boss") return "Boss";
+    if (item.source === "task") return "Task";
     const cat = EVENT_CATEGORIES[item.category as EventCategory];
     return cat?.label ?? item.category;
   }

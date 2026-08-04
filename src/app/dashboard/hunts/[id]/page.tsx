@@ -85,6 +85,7 @@ export default function HuntDetailPage() {
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
+      if (line.startsWith("\t") || (line.startsWith(" ") && !trimmed.match(/^(Loot|Supplies|Balance|Damage|Healing):/i))) continue;
 
       const sessionMatch = trimmed.match(/^Session:\s*(.+)/i);
       if (sessionMatch) { duration = sessionMatch[1].trim(); continue; }
@@ -833,7 +834,7 @@ export default function HuntDetailPage() {
                         <X size={14} className="text-amber-400" />
                       </button>
                       <p className="text-xs text-amber-400 font-medium mb-2">Como obter os dados:</p>
-                      <img src="/party-loot.jpg" alt="Tutorial Party Loot" className="w-full rounded-lg border border-border" />
+                      <img src="/hunting-analy.png" alt="Tutorial Hunting Analyzer" className="w-full rounded-lg border border-border" />
                     </div>
                   )}
                   <p className="text-sm text-muted">Cole os dados da sessão (Party Loot do Tibia):</p>

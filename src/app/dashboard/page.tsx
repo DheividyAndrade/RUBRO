@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Swords, Skull, ScrollText, Calendar, Clock, Users, ArrowRight } from "lucide-react";
+import { Swords, Skull, ScrollText, Calendar, Clock, Users, ArrowRight, MapPin } from "lucide-react";
 import Link from "next/link";
 import { HUNT_STATUS, EVENT_CATEGORIES, type EventCategory } from "@/lib/utils";
 
@@ -30,12 +30,22 @@ interface Event {
   starts_at: string;
 }
 
+interface Task {
+  id: string;
+  creature: string;
+  location: string;
+  scheduled_at: string;
+  status: string;
+  hunt_type: string;
+}
+
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export default function DashboardPage() {
   const [hunts, setHunts] = useState<Hunt[]>([]);
   const [bosses, setBosses] = useState<Boss[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [todayBosses, setTodayBosses] = useState<Boss[]>([]);
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [weekHunts, setWeekHunts] = useState<{ day: number; name: string; id: string }[]>([]);
@@ -54,17 +64,19 @@ export default function DashboardPage() {
       endOfWeek.setDate(endOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59);
 
-      const [{ data: huntsData }, { data: bossesData }, { data: eventsData }, { data: weekHuntsData }] = await Promise.all([
+      const [{ data: huntsData }, { data: bossesData }, { data: eventsData }, { data: weekHuntsData }, { data: tasksData }] = await Promise.all([
         supabase.from("hunts").select("id,name,scheduled_at,status,hunt_type").in("status", ["open","full"]).gte("scheduled_at", now).order("scheduled_at").limit(5),
         supabase.from("bosses").select("id,name,weekday").order("name"),
         supabase.from("events").select("id,title,category,starts_at").gte("starts_at", now).order("starts_at").limit(5),
         supabase.from("hunts").select("id,name,scheduled_at").gte("scheduled_at", startOfWeek.toISOString()).lte("scheduled_at", endOfWeek.toISOString()).order("scheduled_at"),
+        supabase.from("tasks").select("id,creature,location,scheduled_at,status,hunt_type").in("status", ["open","full"]).gte("scheduled_at", now).order("scheduled_at").limit(5),
       ]);
 
       setHunts(huntsData ?? []);
       setBosses(bossesData ?? []);
       setTodayBosses((bossesData ?? []).filter((b) => b.weekday === today));
       setEvents(eventsData ?? []);
+      setTasks(tasksData ?? []);
       setTodayEvents((eventsData ?? []).filter((e) => e.starts_at.startsWith(todayStr)));
 
       const mapped = (weekHuntsData ?? []).map((h: any) => ({
@@ -110,6 +122,31 @@ export default function DashboardPage() {
                 </Link>
               ))}
               <Link href="/dashboard/hunts"><Button variant="outline" size="sm" className="w-full">Ver todas <ArrowRight size={14} /></Button></Link>
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2"><MapPin className="w-5 h-5 text-purple-400" /><CardTitle>Próximas Tasks</CardTitle></div>
+          </CardHeader>
+          {tasks.length === 0 ? (
+            <p className="text-sm text-muted">Nenhuma task agendada.</p>
+          ) : (
+            <div className="space-y-3">
+              {tasks.map((t) => (
+                <Link key={t.id} href={`/dashboard/tasks/${t.id}`} className="block p-3 rounded-lg hover:bg-surface-hover transition-colors -mx-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.creature}</span>
+                      {t.hunt_type === "solo" && <Badge variant="default">Solo</Badge>}
+                    </div>
+                    <Badge variant={t.status === "open" ? "success" : "warning"}>{t.status === "open" ? "Aberta" : "Lotada"}</Badge>
+                  </div>
+                  <p className="text-xs text-muted mt-1"><MapPin size={12} className="inline mr-1" />{t.location} · <Clock size={12} className="inline mr-1" />{fmt(t.scheduled_at)}</p>
+                </Link>
+              ))}
+              <Link href="/dashboard/tasks"><Button variant="outline" size="sm" className="w-full">Ver todas <ArrowRight size={14} /></Button></Link>
             </div>
           )}
         </Card>
@@ -186,6 +223,7 @@ export default function DashboardPage() {
           <CardHeader><div className="flex items-center gap-2"><Users className="w-5 h-5 text-purple-400" /><CardTitle>Ações Rápidas</CardTitle></div></CardHeader>
           <div className="grid grid-cols-2 gap-3">
             <Link href="/dashboard/hunts"><Button variant="outline" className="w-full h-20 flex-col gap-1"><Swords size={20} /><span className="text-xs">Criar Hunt</span></Button></Link>
+            <Link href="/dashboard/tasks"><Button variant="outline" className="w-full h-20 flex-col gap-1"><MapPin size={20} /><span className="text-xs">Criar Task</span></Button></Link>
             <Link href="/dashboard/profile"><Button variant="outline" className="w-full h-20 flex-col gap-1"><UserCircleIcon /><span className="text-xs">Meus Chars</span></Button></Link>
             <Link href="/dashboard/bosses"><Button variant="outline" className="w-full h-20 flex-col gap-1"><Skull size={20} /><span className="text-xs">Bosses</span></Button></Link>
             <Link href="/dashboard/events"><Button variant="outline" className="w-full h-20 flex-col gap-1"><Calendar size={20} /><span className="text-xs">Eventos</span></Button></Link>

@@ -5,12 +5,13 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { VOCATIONS, type Vocation } from "@/lib/utils";
-import { History, Skull, Swords, Coins, User, Clock, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
+import { History, Skull, Swords, Coins, User, Clock, ChevronDown, ChevronUp, ArrowRight, MapPin } from "lucide-react";
 import Link from "next/link";
 
 export default function HistoryPage() {
-  const [tab, setTab] = useState<"hunts" | "bosses" | "loot">("hunts");
+  const [tab, setTab] = useState<"hunts" | "tasks" | "bosses" | "loot">("hunts");
   const [hunts, setHunts] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [bosses, setBosses] = useState<any[]>([]);
   const [loot, setLoot] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,12 +24,19 @@ export default function HistoryPage() {
     setLoading(true);
     const [
       { data: huntsData },
+      { data: tasksData },
       { data: bossesData },
       { data: lootData },
     ] = await Promise.all([
       supabase
         .from("hunts")
         .select("id, name, scheduled_at, created_at, status, end_time")
+        .in("status", ["completed", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(30),
+      supabase
+        .from("tasks")
+        .select("id, creature, location, scheduled_at, created_at, status")
         .in("status", ["completed", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(30),
@@ -87,6 +95,26 @@ export default function HistoryPage() {
       setHunts([]);
     }
 
+    if (tasksData && tasksData.length > 0) {
+      const taskIds = tasksData.map((t: any) => t.id);
+      const { data: taskParts } = await supabase.from("task_participants").select("task_id, character_id").in("task_id", taskIds);
+      const taskCharIds = [...new Set((taskParts ?? []).map((p: any) => p.character_id).filter(Boolean))];
+      const { data: taskChars } = taskCharIds.length > 0 ? await supabase.from("characters").select("id, name, vocation").in("id", taskCharIds) : { data: [] };
+      const taskCharMap = new Map((taskChars ?? []).map((c: any) => [c.id, c]));
+      const partsByTask = new Map<string, any[]>();
+      (taskParts ?? []).forEach((p: any) => {
+        if (!partsByTask.has(p.task_id)) partsByTask.set(p.task_id, []);
+        partsByTask.get(p.task_id)!.push({ character: taskCharMap.get(p.character_id) ?? null });
+      });
+      setTasks(tasksData.map((t: any) => ({
+        ...t,
+        participants: partsByTask.get(t.id) ?? [],
+        duration: getDuration(t.scheduled_at, t.created_at),
+      })));
+    } else {
+      setTasks([]);
+    }
+
     const enrichedLoot = (lootData ?? []).map((l: any) => {
       const hunt = l.hunt_id ? huntMap.get(l.hunt_id) : null;
       return {
@@ -127,6 +155,7 @@ export default function HistoryPage() {
       <div className="flex gap-2 border-b border-border pb-2">
         {[
           { key: "hunts" as const, label: "Hunts", icon: Swords },
+          { key: "tasks" as const, label: "Tasks", icon: MapPin },
           { key: "bosses" as const, label: "Bosses", icon: Skull },
           { key: "loot" as const, label: "Loot", icon: Coins },
         ].map((t) => (
@@ -215,6 +244,45 @@ export default function HistoryPage() {
                 </Card>
               );
             })
+          )}
+        </div>
+      )}
+
+      {tab === "tasks" && (
+        <div className="space-y-3">
+          {tasks.length === 0 ? (
+            <Card><p className="text-sm text-muted text-center py-8">Nenhuma task concluída.</p></Card>
+          ) : (
+            tasks.map((t) => (
+              <Card key={t.id}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold">{t.creature}</h3>
+                      {t.status === "completed" ? <Badge variant="success">Concluída</Badge> : <Badge variant="danger">Cancelada</Badge>}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted mt-1">
+                      <span><MapPin size={12} className="inline mr-1" />{t.location}</span>
+                      <span><Clock size={12} className="inline mr-1" />{fmt(t.scheduled_at)}</span>
+                      {t.duration && <span>· ⏱️ {t.duration}</span>}
+                      <span>· {t.participants?.length ?? 0} participantes</span>
+                    </div>
+                    {t.participants?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {t.participants.map((p: any, i: number) => (
+                          <span key={i} className="text-xs px-2 py-0.5 rounded bg-surface-hover">
+                            <span className={p.character?.vocation ? VOCATIONS[p.character.vocation as Vocation]?.color : "text-muted"}>{p.character?.vocation ?? "?"}</span>{" "}{p.character?.name ?? "?"}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Link href={`/dashboard/tasks/${t.id}`} className="inline-flex items-center gap-1 text-xs text-primary hover:underline ml-2 flex-shrink-0">
+                    Ver <ArrowRight size={12} />
+                  </Link>
+                </div>
+              </Card>
+            ))
           )}
         </div>
       )}

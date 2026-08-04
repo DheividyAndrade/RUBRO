@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, Swords, Skull, ScrollText, Calendar, UserCircle, Shield,
   History, LogOut, CalendarDays, UserPlus, FlaskRound, X, Lock, LockOpen,
+  ClipboardList,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ interface SidebarProps {
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/hunts", label: "Hunts", icon: Swords },
+  { href: "/dashboard/tasks", label: "Tasks", icon: ClipboardList },
   { href: "/dashboard/bosses", label: "Bosses", icon: Skull },
   { href: "/dashboard/events", label: "Eventos", icon: CalendarDays },
   { href: "/dashboard/calendar", label: "Agenda", icon: Calendar },

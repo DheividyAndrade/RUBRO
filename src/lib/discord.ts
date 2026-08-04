@@ -561,3 +561,123 @@ export async function notifyLevelMilestone({
     timestamp: new Date().toISOString(),
   });
 }
+
+export async function notifyTaskCreated({
+  creature,
+  location,
+  taskId,
+  scheduledAt,
+  taskType,
+  creatorName,
+  creatorVocation,
+  creatorLevel,
+  slots,
+}: {
+  creature: string;
+  location: string;
+  taskId: string;
+  scheduledAt: string;
+  taskType: "solo" | "group";
+  creatorName: string;
+  creatorVocation: string;
+  creatorLevel: number;
+  slots: Record<string, number>;
+}): Promise<string | null> {
+  const dateStr = new Date(scheduledAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const timeStr = new Date(scheduledAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  const minLevel = Math.floor((creatorLevel * 2) / 3);
+  const maxLevel = Math.floor((creatorLevel * 3) / 2);
+
+  const fields = [
+    { name: "📍 Local", value: location, inline: true },
+    { name: "📅 Data", value: dateStr, inline: true },
+    { name: "⏰ Horário", value: timeStr, inline: true },
+    { name: "👤 Criador", value: `${creatorName} (${creatorVocation}) Level ${creatorLevel}`, inline: true },
+  ];
+
+  if (taskType === "group") {
+    fields.push({
+      name: "⚖️ Shared Experience",
+      value: `**${minLevel}** — **${maxLevel}**`,
+      inline: true,
+    });
+
+    const slotEntries = Object.entries(slots).filter(([, v]) => Number(v) > 0);
+    if (slotEntries.length > 0) {
+      const slotsText = slotEntries.map(([voc, max]) => {
+        const m = Number(max);
+        const filled = voc === creatorVocation ? 1 : 0;
+        const falta = m - filled;
+        if (falta <= 0) return `**${voc}** ✅`;
+        return `**${voc}** ${filled}/${m}`;
+      }).join(" · ");
+      fields.push({ name: "👥 Vagas", value: slotsText, inline: false });
+    }
+  }
+
+  const emoji = taskType === "solo" ? "🔒" : "⚔️";
+  const typeLabel = taskType === "solo" ? "Task Solo" : "PT Aberta";
+  const link = `${APP_URL}/dashboard/tasks/${taskId}`;
+  const desc = taskType === "solo"
+    ? `Task solo de **${creatorName}**. Reservada apenas para o criador.`
+    : `Nova task criada! [Clique aqui para se inscrever](${link})`;
+
+  return sendEmbed("task", "@everyone", {
+    title: `${emoji} ${typeLabel}: **${creature}**`,
+    description: desc,
+    url: link,
+    fields,
+    color: taskType === "solo" ? 0x6b7280 : 0x8b5cf6,
+    footer: { text: "Rubro Guild Manager — Tasks" },
+    timestamp: new Date().toISOString(),
+  });
+}
+
+export async function notifyTaskCompleted({
+  creature,
+  taskId,
+  participants,
+  lootTotal,
+  lootSplits,
+  playerStats,
+  guildTax,
+  taxPerPlayer,
+}: {
+  creature: string;
+  taskId: string;
+  participants?: { name: string; vocation: string }[];
+  lootTotal?: number;
+  lootSplits?: { name: string; amount: number }[];
+  playerStats?: { name: string; damage: number; healing: number; loot: number; supplies: number }[];
+  guildTax?: number;
+  taxPerPlayer?: { name: string; amount: number }[];
+}) {
+  const fields = [];
+  if (participants && participants.length > 0) {
+    fields.push({ name: `👥 Participantes (${participants.length})`, value: participants.map((p) => `**${p.vocation}** ${p.name}`).join("\n"), inline: false });
+  }
+  if (lootTotal != null && lootTotal > 0) {
+    fields.push({ name: "💰 Loot Total", value: `${lootTotal.toLocaleString("pt-BR")} gp`, inline: true });
+  }
+  if (lootSplits && lootSplits.length > 0) {
+    fields.push({ name: "💸 Divisão", value: lootSplits.map((s) => `**${s.name}**: ${s.amount.toLocaleString("pt-BR")} gp`).join("\n"), inline: false });
+  }
+  if (playerStats && playerStats.length > 0) {
+    fields.push({ name: "📋 Detalhes", value: playerStats.map((s) => `**${s.name}** — ⚔ ${s.damage.toLocaleString("pt-BR")} · 💚 ${s.healing.toLocaleString("pt-BR")} · 💰 ${s.loot.toLocaleString("pt-BR")} · 🧪 ${s.supplies.toLocaleString("pt-BR")}`).join("\n"), inline: false });
+  }
+  if (guildTax != null && guildTax > 0) {
+    fields.push({ name: "🏦 Taxa Guilda (2%)", value: `Total: **${guildTax.toLocaleString("pt-BR")} gp**`, inline: true });
+  }
+  if (taxPerPlayer && taxPerPlayer.length > 0) {
+    fields.push({ name: "💸 Repasse Guilda", value: taxPerPlayer.map((t) => `**${t.name}** → Rubro Bank: **${t.amount.toLocaleString("pt-BR")} gp**`).join("\n"), inline: false });
+  }
+  await sendEmbed("task", "", {
+    title: `✅ Task Concluída: **${creature}**`,
+    description: `Task concluída. [Ver detalhes](${APP_URL}/dashboard/tasks/${taskId})`,
+    fields,
+    color: 0x16a34a,
+    footer: { text: "Rubro Guild Manager — Tasks" },
+    timestamp: new Date().toISOString(),
+  });
+}
