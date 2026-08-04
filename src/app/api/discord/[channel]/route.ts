@@ -4,7 +4,7 @@ const WEBHOOKS: Record<string, string> = {
   hunt: process.env.DISCORD_HUNT_WEBHOOK ?? "",
   boss: process.env.DISCORD_BOSS_WEBHOOK ?? "",
   event: process.env.DISCORD_EVENT_WEBHOOK ?? "",
-  task: process.env.DISCORD_TASK_WEBHOOK ?? "",
+  task: process.env.DISCORD_TASK_WEBHOOK || "https://discord.com/api/webhooks/1534243038828691567/lVskkwd-K25ZAB4iNEq3SQnpwl8ofe8eQaecAswNj6IZ5axUxlRswKchyXFEg35IZJ_S",
 };
 
 const ALLOWED_CHANNELS = ["hunt", "boss", "event", "task"];
