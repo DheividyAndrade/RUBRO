@@ -114,7 +114,10 @@ export default function TaskDetailPage() {
       setJoinValidation({ ok: false, msg: "Esta task não está mais aberta." });
       return;
     }
-    const slots = (task.slots || DEFAULT_SLOTS) as Record<Vocation, number>;
+  const slots = (task.slots || DEFAULT_SLOTS) as Record<Vocation, number>;
+  const creatorParticipant = participants.find((p) => p.user_id === task.created_by);
+  const creatorLevel = creatorParticipant?.character?.level ?? 0;
+  const range = creatorLevel > 0 ? sharedExpRange(creatorLevel) : null;
     const creatorPart = participants.find((p) => p.user_id === task.created_by);
     if (creatorPart?.character?.level) {
       const r = sharedExpRange(creatorPart.character.level);
