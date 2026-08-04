@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { VOCATIONS, type Vocation } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { Shield, Clock, Lock, Check, Plus, Swords } from "lucide-react";
+import { Shield, Clock, Lock, Check, Plus, Swords, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { notifyTaskCreated } from "@/lib/discord";
@@ -132,6 +132,14 @@ export default function TasksPage() {
 
   const isAdmin = myRole === "LEADER" || myRole === "VICE";
 
+  async function handleDelete(taskId: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Excluir esta task?")) return;
+    await supabase.from("tasks").delete().eq("id", taskId);
+    loadTasks();
+  }
+
   if (loading) {
     return <div className="space-y-6 animate-pulse"><div className="h-8 w-48 bg-surface rounded" /><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2,3].map(i => <div key={i} className="h-32 bg-surface rounded-xl" />)}</div></div>;
   }
@@ -192,6 +200,11 @@ export default function TasksPage() {
                       {new Date(task.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
+                  {isAdmin && (
+                    <button onClick={(e) => handleDelete(task.id, e)} className="p-1 rounded hover:bg-red-500/10 cursor-pointer flex-shrink-0" title="Excluir task">
+                      <Trash2 size={14} className="text-red-400" />
+                    </button>
+                  )}
                 </div>
               </CardHeader>
             </Card>
