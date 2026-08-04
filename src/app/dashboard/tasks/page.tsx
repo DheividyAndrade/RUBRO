@@ -46,6 +46,8 @@ export default function TasksPage() {
   const [formScheduledAt, setFormScheduledAt] = useState("");
   const [formHuntType, setFormHuntType] = useState<"solo" | "group">("group");
   const [formSlots, setFormSlots] = useState<Record<Vocation, number>>({ EK: 1, RP: 2, MS: 1, ED: 1, MK: 1 });
+  const [formCharId, setFormCharId] = useState("");
+  const [myChars, setMyChars] = useState<{ id: string; name: string; vocation: Vocation; level: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -58,13 +60,15 @@ export default function TasksPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [{ data: taskData }, { data: profile }] = await Promise.all([
+    const [{ data: taskData }, { data: profile }, { data: chars }] = await Promise.all([
       supabase.from("tasks").select("*").order("scheduled_at"),
       supabase.from("profiles").select("role").eq("id", user.id).single(),
+      supabase.from("characters").select("id,name,vocation,level").eq("user_id", user.id),
     ]);
 
     setTasks(taskData ?? []);
     setMyRole(profile?.role ?? "MEMBER");
+    setMyChars(chars ?? []);
     setLoading(false);
   }
 
@@ -72,12 +76,16 @@ export default function TasksPage() {
     if (!formCreature.trim()) { setFormError("Informe a criatura."); return; }
     if (!formLocation.trim()) { setFormError("Informe o local."); return; }
     if (!formScheduledAt) { setFormError("Informe a data."); return; }
+    if (!formCharId) { setFormError("Selecione um personagem."); return; }
 
     setSaving(true);
     setFormError("");
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    const char = myChars.find((c) => c.id === formCharId);
+    if (!char) { setFormError("Personagem não encontrado."); setSaving(false); return; }
 
     const scheduledAt = new Date(formScheduledAt).toISOString();
 
@@ -88,23 +96,19 @@ export default function TasksPage() {
       scheduled_at: scheduledAt,
       hunt_type: formHuntType,
       slots: formHuntType === "solo" ? { EK: 0, RP: 0, MS: 0, ED: 0, MK: 0 } : formSlots,
+      character_id: char.id,
     }).select("id").single();
 
     if (error || !newTask) { setFormError(error?.message || "Erro ao criar task."); setSaving(false); return; }
 
-    const { data: myChars } = await supabase.from("characters").select("id,name,vocation,level").eq("user_id", user.id).limit(1).maybeSingle();
-    if (myChars) {
-      await supabase.from("task_participants").insert({
-        task_id: newTask.id,
-        user_id: user.id,
-        character_id: myChars.id,
-        vocation_slot: myChars.vocation,
-        confirmed: true,
-        is_waiting: false,
-      });
-    }
-
-    const { data: creatorChar } = await supabase.from("characters").select("id,name,vocation,level").eq("user_id", user.id).limit(1).maybeSingle();
+    await supabase.from("task_participants").insert({
+      task_id: newTask.id,
+      user_id: user.id,
+      character_id: char.id,
+      vocation_slot: char.vocation,
+      confirmed: true,
+      is_waiting: false,
+    });
 
     const messageId = await notifyTaskCreated({
       creature: formCreature.trim(),
@@ -112,9 +116,9 @@ export default function TasksPage() {
       taskId: newTask.id,
       scheduledAt: scheduledAt,
       taskType: formHuntType,
-      creatorName: creatorChar?.name ?? user.email ?? "Desconhecido",
-      creatorVocation: creatorChar?.vocation ?? "?",
-      creatorLevel: creatorChar?.level ?? 0,
+      creatorName: char.name,
+      creatorVocation: char.vocation,
+      creatorLevel: char.level,
       slots: formHuntType === "solo" ? {} : formSlots,
     });
 
@@ -220,6 +224,8 @@ export default function TasksPage() {
           <Input label="Data e Hora" type="datetime-local" value={formScheduledAt} onChange={(e) => setFormScheduledAt(e.target.value)} />
           <Select label="Tipo" value={formHuntType} onChange={(e) => setFormHuntType(e.target.value as "solo" | "group")}
             options={[{ value: "group", label: "PT Aberta" }, { value: "solo", label: "Solo" }]} />
+          <Select label="Personagem" value={formCharId} onChange={(e) => setFormCharId(e.target.value)}
+            options={[{ value: "", label: "Selecione..." }, ...myChars.map((c) => ({ value: c.id, label: `${c.name} (${c.vocation}) Level ${c.level}` }))]} />
           {formHuntType === "group" && (
             <div className="grid grid-cols-5 gap-2">
               {(Object.keys(VOCATIONS) as Vocation[]).map((voc) => (
