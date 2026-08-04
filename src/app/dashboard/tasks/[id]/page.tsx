@@ -115,9 +115,6 @@ export default function TaskDetailPage() {
       return;
     }
   const slots = (task.slots || DEFAULT_SLOTS) as Record<Vocation, number>;
-  const creatorParticipant = participants.find((p) => p.user_id === task.created_by);
-  const creatorLevel = creatorParticipant?.character?.level ?? 0;
-  const range = creatorLevel > 0 ? sharedExpRange(creatorLevel) : null;
     const creatorPart = participants.find((p) => p.user_id === task.created_by);
     if (creatorPart?.character?.level) {
       const r = sharedExpRange(creatorPart.character.level);
@@ -424,6 +421,10 @@ export default function TaskDetailPage() {
   }
 
   const slots = (task.slots || DEFAULT_SLOTS) as Record<Vocation, number>;
+  const creatorParticipant = participants.find((p) => p.user_id === task.created_by);
+  const range = creatorParticipant?.character?.level
+    ? sharedExpRange(creatorParticipant.character.level)
+    : null;
 
   return (
     <div className="space-y-6">
