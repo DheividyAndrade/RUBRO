@@ -395,7 +395,7 @@ export default function TaskDetailPage() {
         lootTotal: totalValue,
         lootSplits: splitList.length > 0 ? splitList : undefined,
         playerStats,
-        guildTax: splitterResult?.guildTax > 0 ? splitterResult.guildTax : undefined,
+        guildTax: (splitterResult?.guildTax ?? 0) > 0 ? splitterResult!.guildTax : undefined,
         taxPerPlayer: taxPerPlayer && taxPerPlayer.length > 0 ? taxPerPlayer : undefined,
       });
     }
