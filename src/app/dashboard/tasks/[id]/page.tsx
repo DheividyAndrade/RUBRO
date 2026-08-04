@@ -115,6 +115,14 @@ export default function TaskDetailPage() {
       return;
     }
     const slots = (task.slots || DEFAULT_SLOTS) as Record<Vocation, number>;
+    const creatorPart = participants.find((p) => p.user_id === task.created_by);
+    if (creatorPart?.character?.level) {
+      const r = sharedExpRange(creatorPart.character.level);
+      if (char.level < r.min || char.level > r.max) {
+        setJoinValidation({ ok: false, msg: `Seu level (${char.level}) está fora do Shared Experience (${r.min} – ${r.max}).` });
+        return;
+      }
+    }
     const slotMax = slots[char.vocation] ?? 0;
     if (slotMax === 0) {
       setJoinValidation({ ok: false, msg: `Vaga para ${char.vocation} não disponível.` });
@@ -432,6 +440,9 @@ export default function TaskDetailPage() {
           <div className="flex items-center gap-4 mt-2 text-sm text-muted">
             <span className="flex items-center gap-1"><MapPin size={14} />{task.location}</span>
             <span className="flex items-center gap-1"><Clock size={14} />{new Date(task.scheduled_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</span>
+            {range && task.hunt_type === "group" && (
+              <span className="flex items-center gap-1"><Shield size={14} />Shared: {range.min} – {range.max}</span>
+            )}
           </div>
         </div>
 
