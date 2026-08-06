@@ -232,7 +232,9 @@ export default function ProfilePage() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Meus Personagens</h2>
-        <Button onClick={openCreateModal} size="sm"><Plus size={16} /> Novo Personagem</Button>
+        <div className="flex gap-2">
+          <Button onClick={openCreateModal} size="sm"><Plus size={16} /> Novo Personagem</Button>
+        </div>
       </div>
 
       {characters.length === 0 ? (
