@@ -383,10 +383,26 @@ export default function TaskDetailPage() {
       }
     }
 
-    const { error } = await supabase.from("loot_history").insert({
+    const { data: lootEntry, error } = await supabase.from("loot_history").insert({
       task_id: taskId, item_name: "Divisão de Loot", value: totalValue, split_among: splits,
-    });
-    if (error) { setLootError(error.message); setSavingLoot(false); return; }
+    }).select("id").single();
+
+    if (error || !lootEntry) { setLootError(error?.message || "Erro ao salvar loot."); setSavingLoot(false); return; }
+
+    for (const s of splits) {
+      if (s.amount <= 0) continue;
+      try {
+        await supabase.from("financial_records").upsert({
+          user_id: s.user_id,
+          category: "profit",
+          type: "income",
+          amount: s.amount,
+          description: task?.creature || null,
+          source_ref: `loot_${lootEntry.id}_${s.user_id}`,
+          created_at: new Date().toISOString(),
+        }, { onConflict: "source_ref", ignoreDuplicates: true });
+      } catch {}
+    }
 
     if (task && task.status !== "completed") {
       await supabase.from("tasks").update({ status: "completed" }).eq("id", taskId);

@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { VOCATIONS, type Vocation } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Star, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Star, AlertCircle, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 
 interface Character {
   id: string;
@@ -34,6 +34,15 @@ export default function ProfilePage() {
   const [formPlayTimes, setFormPlayTimes] = useState("");
   const [formIsMain, setFormIsMain] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const [finRecords, setFinRecords] = useState<any[]>([]);
+  const [finMonth, setFinMonth] = useState(new Date().getMonth());
+  const [finYear, setFinYear] = useState(new Date().getFullYear());
+  const [finModalOpen, setFinModalOpen] = useState(false);
+  const [finCategory, setFinCategory] = useState("supplies");
+  const [finAmount, setFinAmount] = useState("");
+  const [finDesc, setFinDesc] = useState("");
+  const [finError, setFinError] = useState("");
 
   const supabase = createClient();
 
@@ -70,6 +79,7 @@ export default function ProfilePage() {
   }, [supabase]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadFinancial(); }, [finMonth, finYear]);
 
   function openCreateModal() {
     setEditingChar(null);
@@ -138,6 +148,48 @@ export default function ProfilePage() {
     await supabase.from("characters").update({ is_main: true }).eq("id", char.id);
     loadData();
   }
+
+  async function loadFinancial() {
+    const res = await fetch(`/api/financial?year=${finYear}&month=${finMonth + 1}`);
+    if (res.ok) setFinRecords(await res.json());
+  }
+
+  async function handleAddFinancial() {
+    if (!finAmount || Number(finAmount) <= 0) { setFinError("Informe o valor."); return; }
+    const res = await fetch("/api/financial", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: finCategory, type: "expense", amount: Number(finAmount), description: finDesc || null }),
+    });
+    if (res.ok) {
+      setFinModalOpen(false); setFinAmount(""); setFinDesc(""); setFinError("");
+      loadFinancial();
+    } else {
+      const d = await res.json();
+      setFinError(d.error || "Erro.");
+    }
+  }
+
+  async function handleDeleteFinancial(id: string) {
+    await fetch(`/api/financial?id=${id}`, { method: "DELETE" });
+    loadFinancial();
+  }
+
+  const totalIncome = finRecords.filter((r) => r.type === "income").reduce((s, r) => s + r.amount, 0);
+  const totalExpense = finRecords.filter((r) => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+  const balance = totalIncome - totalExpense;
+
+  const CATEGORIES = [
+    { value: "profit", label: "Lucro", icon: "$" },
+    { value: "supplies", label: "Supplies", icon: "🧪" },
+    { value: "imbuements", label: "Imbuements", icon: "💎" },
+    { value: "vip", label: "VIP", icon: "👑" },
+    { value: "upgrade_set", label: "Upgrade Set", icon: "⚔️" },
+    { value: "tokens", label: "Tokens", icon: "🪙" },
+    { value: "other", label: "Outros", icon: "📦" },
+  ];
+
+  const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
   if (loading) {
     return <div className="space-y-6 animate-pulse"><div className="h-8 w-48 bg-surface rounded" /><div className="h-32 bg-surface rounded-xl" /></div>;
@@ -219,6 +271,90 @@ export default function ProfilePage() {
           ))}
         </div>
       )}
+
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-green-400" />
+              <CardTitle>Financeiro</CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <select value={finMonth} onChange={(e) => setFinMonth(Number(e.target.value))} className="px-2 py-1 rounded border border-border bg-background text-foreground text-xs">
+                {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+              </select>
+              <select value={finYear} onChange={(e) => setFinYear(Number(e.target.value))} className="px-2 py-1 rounded border border-border bg-background text-foreground text-xs">
+                {[finYear - 1, finYear, finYear + 1].map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
+        </CardHeader>
+
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="p-3 rounded-lg bg-green-500/10 text-center">
+            <TrendingUp size={16} className="text-green-400 mx-auto mb-1" />
+            <p className="text-lg font-bold text-green-400">{totalIncome.toLocaleString("pt-BR")} gp</p>
+            <p className="text-xs text-muted">Lucro</p>
+          </div>
+          <div className="p-3 rounded-lg bg-red-500/10 text-center">
+            <TrendingDown size={16} className="text-red-400 mx-auto mb-1" />
+            <p className="text-lg font-bold text-red-400">{totalExpense.toLocaleString("pt-BR")} gp</p>
+            <p className="text-xs text-muted">Gastos</p>
+          </div>
+          <div className={`p-3 rounded-lg text-center ${balance >= 0 ? "bg-green-500/10" : "bg-red-500/10"}`}>
+            <DollarSign size={16} className={`mx-auto mb-1 ${balance >= 0 ? "text-green-400" : "text-red-400"}`} />
+            <p className={`text-lg font-bold ${balance >= 0 ? "text-green-400" : "text-red-400"}`}>{balance.toLocaleString("pt-BR")} gp</p>
+            <p className="text-xs text-muted">Saldo</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          <Button size="sm" variant="outline" onClick={() => { setFinError(""); setFinModalOpen(true); }}>
+            <Plus size={14} className="mr-1" /> Adicionar Gasto
+          </Button>
+        </div>
+
+        <div className="space-y-1 max-h-80 overflow-y-auto">
+          {finRecords.length === 0 ? (
+            <p className="text-sm text-muted text-center py-4">Nenhum registro no período.</p>
+          ) : (
+            finRecords.map((r) => {
+              const cat = CATEGORIES.find((c) => c.value === r.category);
+              return (
+                <div key={r.id} className="flex items-center justify-between p-2 rounded-lg bg-surface-hover">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{cat?.icon || "📦"}</span>
+                    <div>
+                      <span className="text-sm">{cat?.label || r.category}</span>
+                      {r.description && <span className="text-xs text-muted ml-1">— {r.description}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-medium ${r.type === "income" ? "text-green-400" : "text-red-400"}`}>
+                      {r.type === "income" ? "+" : "-"}{r.amount.toLocaleString("pt-BR")} gp
+                    </span>
+                    <span className="text-xs text-muted">{new Date(r.created_at).toLocaleDateString("pt-BR")}</span>
+                    <button onClick={() => handleDeleteFinancial(r.id)} className="p-1 rounded hover:bg-red-500/10 cursor-pointer">
+                      <Trash2 size={12} className="text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </Card>
+
+      <Modal open={finModalOpen} onClose={() => setFinModalOpen(false)} title="Adicionar Gasto">
+        <div className="space-y-4">
+          <Select label="Categoria" value={finCategory} onChange={(e) => setFinCategory(e.target.value)}
+            options={CATEGORIES.map((c) => ({ value: c.value, label: `${c.icon} ${c.label}` }))} />
+          <Input label="Valor (gp)" type="number" value={finAmount} onChange={(e) => setFinAmount(e.target.value)} placeholder="0" />
+          <Input label="Descrição (opcional)" value={finDesc} onChange={(e) => setFinDesc(e.target.value)} placeholder="Ex: Divine Imbuement" />
+          {finError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400">{finError}</div>}
+          <Button onClick={handleAddFinancial} className="w-full">Adicionar</Button>
+        </div>
+      </Modal>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingChar ? "Editar Personagem" : "Novo Personagem"}>
         <div className="space-y-4">

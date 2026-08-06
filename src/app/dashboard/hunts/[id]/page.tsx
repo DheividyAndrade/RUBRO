@@ -522,14 +522,29 @@ export default function HuntDetailPage() {
       }
     }
 
-    const { error } = await supabase.from("loot_history").insert({
+    const { data: lootEntry, error } = await supabase.from("loot_history").insert({
       hunt_id: huntId,
       item_name: "Divisão de Loot",
       value: totalValue,
       split_among: splits,
-    });
+    }).select("id").single();
 
-    if (error) { setLootError(error.message); setSavingLoot(false); return; }
+    if (error || !lootEntry) { setLootError(error?.message || "Erro ao salvar loot."); setSavingLoot(false); return; }
+
+    for (const s of splits) {
+      if (s.amount <= 0) continue;
+      try {
+        await supabase.from("financial_records").upsert({
+          user_id: s.user_id,
+          category: "profit",
+          type: "income",
+          amount: s.amount,
+          description: hunt?.name || null,
+          source_ref: `loot_${lootEntry.id}_${s.user_id}`,
+          created_at: new Date().toISOString(),
+        }, { onConflict: "source_ref", ignoreDuplicates: true });
+      } catch {}
+    }
 
     if (hunt && hunt.status !== "completed") {
       await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
