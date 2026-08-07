@@ -40,6 +40,7 @@ export default function ProfilePage() {
   const [finYear, setFinYear] = useState(new Date().getFullYear());
   const [finModalOpen, setFinModalOpen] = useState(false);
   const [finCategory, setFinCategory] = useState("supplies");
+  const [finType, setFinType] = useState<"expense" | "income">("expense");
   const [finAmount, setFinAmount] = useState("");
   const [finDesc, setFinDesc] = useState("");
   const [finError, setFinError] = useState("");
@@ -155,11 +156,12 @@ export default function ProfilePage() {
   }
 
   async function handleAddFinancial() {
-    if (!finAmount || Number(finAmount) <= 0) { setFinError("Informe o valor."); return; }
+    const rawAmount = Number(finAmount.replace(/[.,]/g, ""));
+    if (!finAmount || rawAmount <= 0) { setFinError("Informe o valor."); return; }
     const res = await fetch("/api/financial", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category: finCategory, type: "expense", amount: Number(finAmount), description: finDesc || null }),
+      body: JSON.stringify({ category: finCategory, type: finType, amount: rawAmount, description: finDesc || null }),
     });
     if (res.ok) {
       setFinModalOpen(false); setFinAmount(""); setFinDesc(""); setFinError("");
@@ -311,8 +313,11 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex gap-2 mb-4">
-          <Button size="sm" variant="outline" onClick={() => { setFinError(""); setFinModalOpen(true); }}>
+          <Button size="sm" variant="outline" onClick={() => { setFinError(""); setFinType("expense"); setFinCategory("supplies"); setFinModalOpen(true); }}>
             <Plus size={14} className="mr-1" /> Adicionar Gasto
+          </Button>
+          <Button size="sm" variant="outline" className="text-green-400 border-green-400/30 hover:bg-green-500/10" onClick={() => { setFinError(""); setFinType("income"); setFinCategory("profit"); setFinModalOpen(true); }}>
+            <Plus size={14} className="mr-1" /> Lucro Aleatório
           </Button>
         </div>
 
@@ -347,7 +352,7 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      <Modal open={finModalOpen} onClose={() => setFinModalOpen(false)} title="Adicionar Gasto">
+      <Modal open={finModalOpen} onClose={() => setFinModalOpen(false)} title={finType === "income" ? "Adicionar Lucro" : "Adicionar Gasto"}>
         <div className="space-y-4">
           <Select label="Categoria" value={finCategory} onChange={(e) => setFinCategory(e.target.value)}
             options={CATEGORIES.map((c) => ({ value: c.value, label: `${c.icon} ${c.label}` }))} />
