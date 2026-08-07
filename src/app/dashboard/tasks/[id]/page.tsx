@@ -516,8 +516,8 @@ export default function TaskDetailPage() {
                       <div className="flex items-center gap-1">
                         {p.confirmed ? <Badge variant="success">Confirmado</Badge> : (
                           <>
-                            <button onClick={() => handleConfirm(p.id, true)} className="p-1 rounded hover:bg-success/20 cursor-pointer"><Check size={14} className="text-success" /></button>
-                            <button onClick={() => handleConfirm(p.id, false)} className="p-1 rounded hover:bg-red-500/20 cursor-pointer"><X size={14} className="text-red-400" /></button>
+                            <button type="button" onClick={() => handleConfirm(p.id, true)} className="p-1 rounded hover:bg-success/20 cursor-pointer"><Check size={14} className="text-success" /></button>
+                            <button type="button" onClick={() => handleConfirm(p.id, false)} className="p-1 rounded hover:bg-red-500/20 cursor-pointer"><X size={14} className="text-red-400" /></button>
                           </>
                         )}
                         {canManage && <button onClick={() => handleLeave(p.id)} className="p-1 rounded hover:bg-red-500/10 cursor-pointer"><X size={14} className="text-red-400" /></button>}
