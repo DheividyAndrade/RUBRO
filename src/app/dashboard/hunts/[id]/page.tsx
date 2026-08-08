@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
-import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntUpdated } from "@/lib/discord";
+import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntUpdated, notifyLevelMilestone } from "@/lib/discord";
 import { addXp } from "@/lib/xp";
 import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
