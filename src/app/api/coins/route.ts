@@ -8,11 +8,6 @@ export async function POST(request: Request) {
   const { amount, reason, reference_id } = await request.json();
   if (!amount || !reason) return Response.json({ error: "amount e reason obrigatórios" }, { status: 400 });
 
-  await supabase.from("rubro_coins").upsert({
-    user_id: user.id,
-    amount: supabase.rpc ? undefined : undefined, // will update below
-  }, { onConflict: "user_id" });
-
   const { data: current } = await supabase.from("rubro_coins").select("amount").eq("user_id", user.id).single();
   const newAmount = (current?.amount || 0) + amount;
 
