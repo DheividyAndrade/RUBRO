@@ -315,6 +315,11 @@ export default function HuntDetailPage() {
 
     const { data: loot } = await supabase.from("loot_history").select("*").eq("hunt_id", huntId).order("created_at", { ascending: false });
     setLootItems(loot ?? []);
+
+    if (huntData?.end_time && huntData.end_time < new Date().toISOString() && (huntData.status === "open" || huntData.status === "full")) {
+      await supabase.from("hunts").update({ status: "completed" }).eq("id", huntId);
+      setHunt({ ...huntData, status: "completed" });
+    }
   }
 
   function validateJoin(charId: string) {

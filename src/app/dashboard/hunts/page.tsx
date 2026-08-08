@@ -103,6 +103,14 @@ export default function HuntsPage() {
       setHunts([]);
     }
 
+    const now = new Date().toISOString();
+    const expired = (huntsData ?? []).filter((h: any) =>
+      h.end_time && h.end_time < now && (h.status === "open" || h.status === "full")
+    );
+    for (const h of expired) {
+      await supabase.from("hunts").update({ status: "completed" }).eq("id", h.id);
+    }
+
     setMyChars(chars ?? []);
     setLoading(false);
   }
@@ -120,6 +128,12 @@ export default function HuntsPage() {
     if (!formHuntName) { setFormError("Nome da hunt é obrigatório."); return; }
     if (!formDate || !formStartTime) { setFormError("Data e horário são obrigatórios."); return; }
 
+    if (formEndTime) {
+      const maxEnd = new Date(new Date(`2000-01-01T${formStartTime}:00`).getTime() + 3 * 60 * 60 * 1000);
+      const chosenEnd = new Date(`2000-01-01T${formEndTime}:00`);
+      if (chosenEnd > maxEnd) { setFormError("Horário fim deve ser no máximo 3h após o início."); return; }
+    }
+
     setSaving(true);
     setFormError("");
 
@@ -128,7 +142,9 @@ export default function HuntsPage() {
 
     const char = myChars.find((c) => c.id === formCharId);
     const scheduledAt = new Date(`${formDate}T${formStartTime}:00`).toISOString();
-    const endAt = formEndTime ? new Date(`${formDate}T${formEndTime}:00`).toISOString() : null;
+    const endAt = formEndTime
+      ? new Date(`${formDate}T${formEndTime}:00`).toISOString()
+      : new Date(new Date(`${formDate}T${formStartTime}:00`).getTime() + 3 * 60 * 60 * 1000).toISOString();
 
     const payload: any = {
       created_by: user.id,
@@ -378,8 +394,9 @@ export default function HuntsPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Horário Início" type="time" value={formStartTime} onChange={(e) => setFormStartTime(e.target.value)} />
-            <Input label="Horário Fim" type="time" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)} />
+            <Input label="Horário Início" type="time" value={formStartTime} onChange={(e) => { setFormStartTime(e.target.value); setFormEndTime(""); }} />
+            <Input label="Horário Fim (máx +3h)" type="time" value={formEndTime} onChange={(e) => setFormEndTime(e.target.value)}
+              max={formStartTime ? new Date(new Date(`2000-01-01T${formStartTime}:00`).getTime() + 3 * 60 * 60 * 1000).toTimeString().slice(0, 5) : undefined} />
           </div>
 
           {formHuntType === "group" && (

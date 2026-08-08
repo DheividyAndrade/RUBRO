@@ -44,7 +44,7 @@ export default function AdminPage() {
 
   const supabase = createClient();
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); loadOnlineUsers(); }, []);
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -133,10 +133,24 @@ export default function AdminPage() {
     loadData();
   }
 
+  async function loadOnlineUsers() {
+    setLoadingOnline(true);
+    const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, display_name, role, last_active_at")
+      .gte("last_active_at", cutoff)
+      .order("display_name");
+    setOnlineUsers(data ?? []);
+    setLoadingOnline(false);
+  }
+
   const [hunts, setHunts] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [guildMembers, setGuildMembers] = useState<any[]>([]);
   const [newMemberName, setNewMemberName] = useState("");
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [loadingOnline, setLoadingOnline] = useState(false);
 
   const roleBadge: Record<string, string> = {
     LEADER: "bg-primary/20 text-primary",
@@ -165,6 +179,33 @@ export default function AdminPage() {
         <h1 className="text-2xl font-bold">Painel do Líder</h1>
         <p className="text-muted mt-1">Gerenciar membros, hunts e eventos oficiais</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <CardTitle>Online agora</CardTitle>
+            <span className="text-sm text-muted">({onlineUsers.length})</span>
+            <button onClick={loadOnlineUsers} className="ml-auto text-xs text-primary hover:underline cursor-pointer">
+              {loadingOnline ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+        </CardHeader>
+        {onlineUsers.length === 0 ? (
+          <p className="text-sm text-muted text-center py-4">Nenhum usuário online.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2 px-2 pb-4">
+            {onlineUsers.map((u) => (
+              <div key={u.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20">
+                <span className="text-sm font-medium">{u.display_name}</span>
+                <Badge variant={u.role === "LEADER" ? "danger" : u.role === "VICE" ? "warning" : "default"} className="text-xs">
+                  {u.role === "LEADER" ? "Líder" : u.role === "VICE" ? "Vice" : "Membro"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <div className="flex gap-2 border-b border-border pb-2">
         {[

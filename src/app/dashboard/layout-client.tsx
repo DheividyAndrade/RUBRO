@@ -38,6 +38,14 @@ export function DashboardLayoutClient({ children }: { children: React.ReactNode 
     };
   }, [resetTimer]);
 
+  useEffect(() => {
+    const heartbeat = setInterval(async () => {
+      await fetch("/api/heartbeat", { method: "POST" }).catch(() => {});
+    }, 60000);
+    fetch("/api/heartbeat", { method: "POST" }).catch(() => {});
+    return () => clearInterval(heartbeat);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       {mobileOpen && (
