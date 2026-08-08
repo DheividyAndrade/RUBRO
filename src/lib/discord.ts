@@ -122,8 +122,6 @@ export async function notifyHuntCompleted({
   lootSplits,
   levelChange,
   playerStats,
-  guildTax,
-  taxPerPlayer,
 }: {
   name: string;
   huntId: string;
@@ -132,8 +130,6 @@ export async function notifyHuntCompleted({
   lootSplits?: { name: string; amount: number }[];
   levelChange?: { oldLevel: number; newLevel: number };
   playerStats?: { name: string; damage: number; healing: number; loot: number; supplies: number }[];
-  guildTax?: number;
-  taxPerPlayer?: { name: string; amount: number }[];
 }) {
   const fields = [];
 
@@ -170,17 +166,6 @@ export async function notifyHuntCompleted({
       .map((s) => `**${s.name}** — ⚔ ${s.damage.toLocaleString("pt-BR")} · 💚 ${s.healing.toLocaleString("pt-BR")} · 💰 ${s.loot.toLocaleString("pt-BR")} · 🧪 ${s.supplies.toLocaleString("pt-BR")}`)
       .join("\n");
     fields.push({ name: "📋 Detalhes", value: statsStr, inline: false });
-  }
-
-  if (guildTax != null && guildTax > 0) {
-    fields.push({ name: "🏦 Taxa Guilda (2%)", value: `Total: **${guildTax.toLocaleString("pt-BR")} gp**`, inline: true });
-  }
-
-  if (taxPerPlayer && taxPerPlayer.length > 0) {
-    const taxStr = taxPerPlayer
-      .map((t) => `**${t.name}** → Rubro Bank: **${t.amount.toLocaleString("pt-BR")} gp**`)
-      .join("\n");
-    fields.push({ name: "💸 Repasse Guilda", value: taxStr, inline: false });
   }
 
   await sendEmbed("hunt", "", {
@@ -641,8 +626,6 @@ export async function notifyTaskCompleted({
   lootTotal,
   lootSplits,
   playerStats,
-  guildTax,
-  taxPerPlayer,
 }: {
   creature: string;
   taskId: string;
@@ -650,8 +633,6 @@ export async function notifyTaskCompleted({
   lootTotal?: number;
   lootSplits?: { name: string; amount: number }[];
   playerStats?: { name: string; damage: number; healing: number; loot: number; supplies: number }[];
-  guildTax?: number;
-  taxPerPlayer?: { name: string; amount: number }[];
 }) {
   const fields = [];
   if (participants && participants.length > 0) {
@@ -665,12 +646,6 @@ export async function notifyTaskCompleted({
   }
   if (playerStats && playerStats.length > 0) {
     fields.push({ name: "📋 Detalhes", value: playerStats.map((s) => `**${s.name}** — ⚔ ${s.damage.toLocaleString("pt-BR")} · 💚 ${s.healing.toLocaleString("pt-BR")} · 💰 ${s.loot.toLocaleString("pt-BR")} · 🧪 ${s.supplies.toLocaleString("pt-BR")}`).join("\n"), inline: false });
-  }
-  if (guildTax != null && guildTax > 0) {
-    fields.push({ name: "🏦 Taxa Guilda (2%)", value: `Total: **${guildTax.toLocaleString("pt-BR")} gp**`, inline: true });
-  }
-  if (taxPerPlayer && taxPerPlayer.length > 0) {
-    fields.push({ name: "💸 Repasse Guilda", value: taxPerPlayer.map((t) => `**${t.name}** → Rubro Bank: **${t.amount.toLocaleString("pt-BR")} gp**`).join("\n"), inline: false });
   }
   await sendEmbed("task", "", {
     title: `✅ Task Concluída: **${creature}**`,

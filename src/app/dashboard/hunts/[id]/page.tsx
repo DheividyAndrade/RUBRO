@@ -145,81 +145,42 @@ export default function HuntDetailPage() {
 
     if (players.length === 0) return null;
 
-    const GUILD_TAX_RATE = 0.02;
-
-    let totalTax = 0;
-    const withTax = players.map((p) => {
-      const tax = p.balance > 0 ? Math.floor(p.balance * GUILD_TAX_RATE) : 0;
-      totalTax += tax;
-      return { ...p, tax, afterTax: p.balance - tax };
-    });
-
-    if (withTax.length === 1) {
-      const p = withTax[0];
-      const soloTax = p.balance > 0 ? Math.floor(p.balance * GUILD_TAX_RATE) : 0;
-      const soloTransfers = soloTax > 0 ? [{ from: p.name, to: "Rubro Bank", amount: soloTax }] : [];
+    if (players.length === 1) {
+      const p = players[0];
       return {
-        duration,
-        totalLoot: p.loot,
-        totalSupplies: p.supplies,
-        profitPerPlayer: p.balance - soloTax,
-        transfers: soloTransfers,
-        players: [{ ...p, tax: soloTax }],
-        guildTax: soloTax,
-        xpPerHour,
+        duration, totalLoot: p.loot, totalSupplies: p.supplies,
+        profitPerPlayer: p.balance, transfers: [],
+        players: [{ ...p, tax: 0 }], guildTax: 0, xpPerHour,
       };
     }
 
     const activePlayers = players.filter((p) => p.name);
-    const guildTax = Math.floor(totalLoot * GUILD_TAX_RATE);
-    const netLoot = totalLoot - guildTax;
-    const totalBalance = netLoot - totalSupplies;
+    const totalBalance = activePlayers.reduce((s, p) => s + p.balance, 0);
     const profitPerPlayer = Math.floor(totalBalance / activePlayers.length);
 
-    const entries: { name: string; supplies: number; loot: number; diff: number }[] = [];
-    let taxRemainder = guildTax;
-    for (let i = 0; i < activePlayers.length; i++) {
-      const p = activePlayers[i];
-      const taxShare = i === activePlayers.length - 1
-        ? taxRemainder
-        : Math.floor(guildTax / activePlayers.length);
-      taxRemainder -= taxShare;
-      const target = p.supplies + profitPerPlayer;
-      const current = p.loot - taxShare;
-      entries.push({ name: p.name, supplies: p.supplies, loot: p.loot, diff: target - current });
-    }
-
-    const payers = entries.filter((e) => e.diff < 0).map((e) => ({ name: e.name, amount: -e.diff })).sort((a, b) => a.amount - b.amount);
-    const receivers = entries.filter((e) => e.diff > 0).map((e) => ({ name: e.name, amount: e.diff })).sort((a, b) => a.amount - b.amount);
+    const settlements = activePlayers.map((p) => ({
+      name: p.name,
+      balance: p.balance - profitPerPlayer,
+    }));
 
     const transfers: { from: string; to: string; amount: number }[] = [];
-    let pi = 0, ri = 0;
-    while (pi < payers.length && ri < receivers.length) {
-      const amt = Math.min(payers[pi].amount, receivers[ri].amount);
-      if (amt > 0) transfers.push({ from: payers[pi].name, to: receivers[ri].name, amount: amt });
-      payers[pi].amount -= amt;
-      receivers[ri].amount -= amt;
-      if (payers[pi].amount <= 0) pi++;
-      if (receivers[ri].amount <= 0) ri++;
+    for (const payer of settlements) {
+      if (payer.balance <= 0) continue;
+      let remaining = payer.balance;
+      for (const receiver of settlements) {
+        if (receiver.balance >= 0) continue;
+        if (remaining <= 0) break;
+        const amt = Math.min(remaining, -receiver.balance);
+        if (amt > 0) {
+          transfers.push({ from: payer.name, to: receiver.name, amount: amt });
+          remaining -= amt; receiver.balance += amt;
+        }
+      }
     }
 
-    const guildPayer = entries.reduce((a, b) => a.diff < b.diff ? a : b);
-    if (guildTax > 0) transfers.push({ from: guildPayer.name, to: "Rubro Bank", amount: guildTax });
-
-    const playerResults = players.filter((p) => p.name).map((p) => {
-      const taxShare = Math.floor(guildTax / players.filter((q) => q.name).length);
-      return { ...p, tax: taxShare };
-    });
-
     return {
-      duration,
-      totalLoot,
-      totalSupplies,
-      profitPerPlayer,
-      transfers,
-      players: playerResults,
-      guildTax,
-      xpPerHour,
+      duration, totalLoot, totalSupplies, profitPerPlayer, transfers,
+      players: activePlayers.map((p) => ({ ...p, tax: 0 })), guildTax: 0, xpPerHour,
     };
   }
 
@@ -233,12 +194,10 @@ export default function HuntDetailPage() {
       fields.push(["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`]);
       fields.push(["Supplies Total:", `${splitterResult.totalSupplies.toLocaleString("pt-BR")} gp`]);
       fields.push(["Profit p/ jogador:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`]);
-      fields.push(["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`]);
     } else {
       fields.push(["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`]);
       fields.push(["Raw XP/h:", splitterResult.xpPerHour.toLocaleString("pt-BR")]);
       fields.push(["Profit:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`]);
-      fields.push(["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`]);
     }
     return (
       <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
@@ -582,14 +541,6 @@ export default function HuntDetailPage() {
           }))
         : undefined;
 
-      const taxPerPlayer = splitterResult
-        ? splitterResult.players
-            .filter((p) => p.tax > 0)
-            .map((p) => ({ name: p.name, amount: p.tax }))
-        : undefined;
-
-      const guildTax = splitterResult?.guildTax || 0;
-
       notifyHuntCompleted({
         name: hunt.name,
         huntId: huntId,
@@ -601,8 +552,6 @@ export default function HuntDetailPage() {
           newLevel: Number(lootLevel) || 0,
         } : undefined,
         playerStats,
-        guildTax: guildTax > 0 ? guildTax : undefined,
-        taxPerPlayer: taxPerPlayer && taxPerPlayer.length > 0 ? taxPerPlayer : undefined,
       });
     }
 

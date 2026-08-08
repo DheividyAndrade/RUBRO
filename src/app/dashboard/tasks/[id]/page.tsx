@@ -231,54 +231,33 @@ export default function TaskDetailPage() {
     if (currentPlayer) players.push(currentPlayer);
     if (players.length === 0) return null;
 
-    const GUILD_TAX_RATE = 0.02;
-    let totalTax = 0;
-    const withTax = players.map((p) => {
-      const tax = p.balance > 0 ? Math.floor(p.balance * GUILD_TAX_RATE) : 0;
-      totalTax += tax;
-      return { ...p, tax, afterTax: p.balance - tax };
-    });
-
-    if (withTax.length === 1) {
-      const p = withTax[0];
-      const soloTax = p.balance > 0 ? Math.floor(p.balance * GUILD_TAX_RATE) : 0;
-      const soloTransfers = soloTax > 0 ? [{ from: p.name || "Jogador", to: "Rubro Bank", amount: soloTax }] : [];
-      return { duration, totalLoot: p.loot, totalSupplies: p.supplies, profitPerPlayer: p.balance - soloTax, transfers: soloTransfers, players: [{ ...p, tax: soloTax }], guildTax: soloTax, xpPerHour };
+    if (players.length === 1) {
+      const p = players[0];
+      return { duration, totalLoot: p.loot, totalSupplies: p.supplies, profitPerPlayer: p.balance, transfers: [], players: [{ ...p, tax: 0 }], guildTax: 0, xpPerHour };
     }
 
     const activePlayers = players.filter((p) => p.name);
-    const guildTax = Math.floor(totalLoot * GUILD_TAX_RATE);
-    const netLoot = totalLoot - guildTax;
-    const totalBalance = netLoot - totalSupplies;
+    const totalBalance = activePlayers.reduce((s, p) => s + p.balance, 0);
     const profitPerPlayer = Math.floor(totalBalance / activePlayers.length);
 
-    const entries: { name: string; supplies: number; loot: number; diff: number }[] = [];
-    let taxRemainder = guildTax;
-    for (let i = 0; i < activePlayers.length; i++) {
-      const p = activePlayers[i];
-      const taxShare = i === activePlayers.length - 1 ? taxRemainder : Math.floor(guildTax / activePlayers.length);
-      taxRemainder -= taxShare;
-      const target = p.supplies + profitPerPlayer;
-      const current = p.loot - taxShare;
-      entries.push({ name: p.name, supplies: p.supplies, loot: p.loot, diff: target - current });
-    }
+    const settlements = activePlayers.map((p) => ({
+      name: p.name,
+      balance: p.balance - profitPerPlayer,
+    }));
 
-    const payers = entries.filter((e) => e.diff < 0).map((e) => ({ name: e.name, amount: -e.diff })).sort((a, b) => a.amount - b.amount);
-    const receivers = entries.filter((e) => e.diff > 0).map((e) => ({ name: e.name, amount: e.diff })).sort((a, b) => a.amount - b.amount);
     const transfers: { from: string; to: string; amount: number }[] = [];
-    let pi = 0, ri = 0;
-    while (pi < payers.length && ri < receivers.length) {
-      const amt = Math.min(payers[pi].amount, receivers[ri].amount);
-      if (amt > 0) transfers.push({ from: payers[pi].name, to: receivers[ri].name, amount: amt });
-      payers[pi].amount -= amt; receivers[ri].amount -= amt;
-      if (payers[pi].amount <= 0) pi++;
-      if (receivers[ri].amount <= 0) ri++;
+    for (const payer of settlements) {
+      if (payer.balance <= 0) continue;
+      let remaining = payer.balance;
+      for (const receiver of settlements) {
+        if (receiver.balance >= 0) continue;
+        if (remaining <= 0) break;
+        const amt = Math.min(remaining, -receiver.balance);
+        if (amt > 0) { transfers.push({ from: payer.name, to: receiver.name, amount: amt }); remaining -= amt; receiver.balance += amt; }
+      }
     }
-    const guildPayer = entries.reduce((a, b) => a.diff < b.diff ? a : b);
-    if (guildTax > 0) transfers.push({ from: guildPayer.name, to: "Rubro Bank", amount: guildTax });
 
-    const playerResults = activePlayers.map((p) => ({ ...p, tax: Math.floor(guildTax / activePlayers.length) }));
-    return { duration, totalLoot, totalSupplies, profitPerPlayer, transfers, players: playerResults, guildTax, xpPerHour };
+    return { duration, totalLoot, totalSupplies, profitPerPlayer, transfers, players: activePlayers.map((p) => ({ ...p, tax: 0 })), guildTax: 0, xpPerHour };
   }
 
   function handleSplitterParse() {
@@ -292,12 +271,10 @@ export default function TaskDetailPage() {
       fields.push(["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`]);
       fields.push(["Supplies Total:", `${splitterResult.totalSupplies.toLocaleString("pt-BR")} gp`]);
       fields.push(["Profit p/ jogador:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`]);
-      fields.push(["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`]);
     } else {
       fields.push(["Loot Total:", `${splitterResult.totalLoot.toLocaleString("pt-BR")} gp`]);
       fields.push(["Raw XP/h:", splitterResult.xpPerHour.toLocaleString("pt-BR")]);
       fields.push(["Profit:", `${splitterResult.profitPerPlayer.toLocaleString("pt-BR")} gp`]);
-      fields.push(["Taxa Guilda (2%):", `${splitterResult.guildTax.toLocaleString("pt-BR")} gp`]);
     }
     return (
       <div className="space-y-3 p-4 rounded-lg bg-surface-hover border border-border">
@@ -305,10 +282,9 @@ export default function TaskDetailPage() {
           {fields.map(([label, value], i) => {
             const isSuccess = label === "Profit:" || label === "Profit p/ jogador:";
             const isSupplies = label === "Supplies Total:";
-            const isTax = label === "Taxa Guilda (2%):";
             return (
               <div key={i}>
-                <span className="text-muted">{label}</span> <span className={cn("font-medium", isSuccess ? (splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400") : isSupplies ? "text-red-400" : isTax ? "text-amber-400" : "")}>{value}</span>
+                <span className="text-muted">{label}</span> <span className={cn("font-medium", isSuccess ? (splitterResult.profitPerPlayer >= 0 ? "text-success" : "text-red-400") : isSupplies ? "text-red-400" : "")}>{value}</span>
               </div>
             );
           })}
@@ -412,15 +388,12 @@ export default function TaskDetailPage() {
       const partList = participants.filter((p) => !p.is_waiting).map((p) => ({ name: p.character?.name ?? "?", vocation: p.character?.vocation ?? "?" }));
       const splitList = splits.map((s) => { const p = participants.find((pt) => pt.user_id === s.user_id); return { name: p?.character?.name ?? "?", amount: s.amount }; }).filter((s) => s.amount > 0);
       const playerStats = splitterResult ? splitterResult.players.map((sp) => ({ name: sp.name, damage: sp.damage, healing: sp.healing, loot: sp.loot, supplies: sp.supplies })) : undefined;
-      const taxPerPlayer = splitterResult ? splitterResult.players.filter((p) => p.tax > 0).map((p) => ({ name: p.name, amount: p.tax })) : undefined;
       notifyTaskCompleted({
         creature: task.creature, taskId,
         participants: partList,
         lootTotal: totalValue,
         lootSplits: splitList.length > 0 ? splitList : undefined,
         playerStats,
-        guildTax: (splitterResult?.guildTax ?? 0) > 0 ? splitterResult!.guildTax : undefined,
-        taxPerPlayer: taxPerPlayer && taxPerPlayer.length > 0 ? taxPerPlayer : undefined,
       });
     }
 
