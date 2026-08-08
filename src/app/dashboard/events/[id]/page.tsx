@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { VOCATIONS, type Vocation, EVENT_CATEGORIES, type EventCategory } from "@/lib/utils";
 import { notifyEventUpdated } from "@/lib/discord";
+import { addXp } from "@/lib/xp";
 import { ArrowLeft, Clock, MapPin, Shield, User, Check, X, AlertCircle } from "lucide-react";
 
 interface Event {
@@ -127,6 +128,12 @@ export default function EventDetailPage() {
       else setJoinMsg(err.message);
       return;
     }
+
+    fetch("/api/coins", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: 20, reason: `Participou do evento: ${event?.title || ""}`, reference_id: `event_${eventId}` }),
+    }).catch(() => {});
+    addXp(100);
 
     if (event) {
       if (event.discord_message_id) {

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { VOCATIONS, type Vocation, WEEKDAYS, sharedExpRange } from "@/lib/utils";
 import { notifyBossJoined, notifyBossRotationUpdated } from "@/lib/discord";
+import { addXp } from "@/lib/xp";
 import { ArrowLeft, Clock, Shield, User, Check, X, Skull, Calendar } from "lucide-react";
 
 interface Boss {
@@ -180,6 +181,12 @@ export default function BossDetailPage() {
     if (myPart) {
       await supabase.from("boss_participants").update({ killed_at: now, confirmed: true }).eq("id", myPart.id);
     }
+
+    fetch("/api/coins", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: 15, reason: `Kill no boss: ${boss?.name || ""}`, reference_id: `boss_${bossId}_${new Date().toISOString().split("T")[0]}` }),
+    }).catch(() => {});
+    addXp(75);
 
     loadBoss();
   }

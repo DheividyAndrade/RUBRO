@@ -21,7 +21,8 @@ interface Character {
 }
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<{ display_name: string; role: string } | null>(null);
+  const [profile, setProfile] = useState<{ display_name: string; role: string; xp: number; user_level: number } | null>(null);
+  const [coinBalance, setCoinBalance] = useState(0);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -53,7 +54,7 @@ export default function ProfilePage() {
 
     let { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("display_name, role")
+      .select("display_name, role, xp, user_level")
       .eq("id", user.id)
       .single();
 
@@ -61,8 +62,8 @@ export default function ProfilePage() {
       const email = user.email ?? "membro";
       const { data: newProfile, error: createError } = await supabase
         .from("profiles")
-        .insert({ id: user.id, display_name: user.user_metadata?.display_name ?? email, role: "MEMBER" })
-        .select("display_name, role")
+        .insert({ id: user.id, display_name: user.user_metadata?.display_name ?? email, role: "MEMBER", xp: 0, user_level: 1 })
+        .select("display_name, role, xp, user_level")
         .single();
       if (!createError) profileData = newProfile;
     }
@@ -76,6 +77,10 @@ export default function ProfilePage() {
 
     setProfile(profileData);
     setCharacters(chars ?? []);
+
+    const { data: coinData } = await supabase.from("rubro_coins").select("amount").eq("user_id", user.id).single();
+    setCoinBalance(coinData?.amount || 0);
+
     setLoading(false);
   }, [supabase]);
 
@@ -221,13 +226,30 @@ export default function ProfilePage() {
 
       <Card>
         <CardHeader><CardTitle>Informações da Conta</CardTitle></CardHeader>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-3 text-sm">
           <div className="flex justify-between"><span className="text-muted">Nome:</span><span>{profile?.display_name}</span></div>
           <div className="flex justify-between">
             <span className="text-muted">Cargo:</span>
             <Badge variant={profile?.role === "LEADER" ? "danger" : profile?.role === "VICE" ? "warning" : "default"}>
               {profile?.role === "LEADER" ? "Líder" : profile?.role === "VICE" ? "Vice-Líder" : "Membro"}
             </Badge>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted">Rubro Coin:</span>
+            <span className="font-bold text-primary flex items-center gap-1">
+              <img src="/rubro-coin.png" alt="" className="w-4 h-4 inline" />
+              {coinBalance.toLocaleString("pt-BR")}
+            </span>
+          </div>
+          <div>
+            <div className="flex justify-between mb-1">
+              <span className="text-muted">Level {profile?.user_level || 1}</span>
+              <span className="text-xs text-muted">{profile?.xp || 0} / {(profile?.user_level || 1) * 100} XP</span>
+            </div>
+            <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary to-purple-400 rounded-full transition-all"
+                style={{ width: `${Math.min(100, ((profile?.xp || 0) % 100) / 100 * 100)}%` }} />
+            </div>
           </div>
         </div>
       </Card>

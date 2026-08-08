@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { VOCATIONS, type Vocation, sharedExpRange, cn } from "@/lib/utils";
 import { notifyTaskCreated, notifyTaskCompleted } from "@/lib/discord";
+import { addXp } from "@/lib/xp";
 import { ArrowLeft, Clock, Shield, User, Check, X, AlertCircle, Swords, MapPin, Coins } from "lucide-react";
 
 interface Task {
@@ -150,6 +151,15 @@ export default function TaskDetailPage() {
       task_id: taskId, user_id: user.id, character_id: char.id, vocation_slot: char.vocation, confirmed: false, is_waiting: false,
     });
     if (error) { if (error.code === "23505") setJoinError("Você já está nesta task."); else setJoinError(error.message); return; }
+
+    if (task?.hunt_type === "group") {
+      fetch("/api/coins", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 10, reason: `Participou da task: ${task.creature}`, reference_id: `task_${taskId}` }),
+      }).catch(() => {});
+      addXp(50);
+    }
+
     setJoinModalOpen(false); setSelectedCharId(""); setJoinValidation(null); setJoinError("");
     await loadTask();
   }

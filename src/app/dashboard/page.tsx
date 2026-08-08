@@ -46,6 +46,8 @@ export default function DashboardPage() {
   const [bosses, setBosses] = useState<Boss[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [myCoinStats, setMyCoinStats] = useState<any>(null);
   const [todayBosses, setTodayBosses] = useState<Boss[]>([]);
   const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const [weekHunts, setWeekHunts] = useState<{ day: number; name: string; id: string }[]>([]);
@@ -87,7 +89,17 @@ export default function DashboardPage() {
       setWeekHunts(mapped);
     }
     load();
+    loadLeaderboard();
   }, [supabase]);
+
+  async function loadLeaderboard() {
+    const res = await fetch("/api/coins").catch(() => null);
+    if (res && res.ok) {
+      const data = await res.json();
+      setLeaderboard(data.leaderboard || []);
+      setMyCoinStats(data.myStats);
+    }
+  }
 
   function fmt(dateStr: string) {
     return new Date(dateStr).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -230,6 +242,46 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <img src="/rubro-coin.png" alt="Rubro Coin" className="w-6 h-6" />
+            <CardTitle>Ranking Rubro Coin</CardTitle>
+            {myCoinStats && (
+              <span className="text-sm text-muted ml-auto">
+                Seu saldo: <span className="text-primary font-bold">{myCoinStats.amount?.toLocaleString("pt-BR") || 0}</span> <img src="/rubro-coin.png" alt="" className="w-4 h-4 inline" />
+                {myCoinStats.rank && <span className="text-muted"> · #{myCoinStats.rank}</span>}
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        <div className="space-y-1">
+          {leaderboard.length === 0 ? (
+            <p className="text-sm text-muted text-center py-4">Nenhuma moeda acumulada ainda.</p>
+          ) : (
+            leaderboard.map((entry: any, i: number) => {
+              return (
+                <div key={entry.user_id} className={`flex items-center gap-3 p-2 rounded-lg ${entry.user_id === myCoinStats?.userId ? "bg-primary/10" : "bg-surface-hover"}`}>
+                  <span className="text-lg font-bold w-8 text-center">
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{entry.display_name || "?"}</p>
+                    <p className="text-xs text-muted">
+                      Lv.{entry.user_level || 1} · {entry.role === "LEADER" ? "Líder" : entry.role === "VICE" ? "Vice" : "Membro"}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold text-primary flex items-center gap-1">
+                    <img src="/rubro-coin.png" alt="" className="w-4 h-4" />
+                    {entry.amount?.toLocaleString("pt-BR") || 0}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

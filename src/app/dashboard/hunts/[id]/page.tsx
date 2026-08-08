@@ -13,7 +13,7 @@ import { VOCATIONS, type Vocation, sharedExpRange, HUNT_STATUS } from "@/lib/uti
 import { cn } from "@/lib/utils";
 import { notifyAllHuntParticipants } from "@/lib/notifications";
 import { notifyHuntCompleted, notifyHuntCancelled, notifyHuntUpdated } from "@/lib/discord";
-import { notifyLevelMilestone } from "@/lib/discord";
+import { addXp } from "@/lib/xp";
 import { Clock, Shield, User, Check, X, ArrowLeft, Lock, AlertCircle, Coins, Plus, Trash2 } from "lucide-react";
 
 interface Hunt {
@@ -368,6 +368,15 @@ export default function HuntDetailPage() {
           participants: pNames,
         });
       }
+    }
+
+    if (hunt?.hunt_type === "group") {
+      fetch("/api/coins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 10, reason: `Participou da hunt: ${hunt.name}`, reference_id: `hunt_${huntId}` }),
+      }).catch(() => {});
+      addXp(50);
     }
 
     setJoinModalOpen(false);
